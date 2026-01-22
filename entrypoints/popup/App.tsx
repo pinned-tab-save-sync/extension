@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import './App.css';
+import "@/assets/tailwind.css";
 
 interface TabGroups {
   [name: string]: string[];
@@ -22,7 +23,7 @@ function App() {
       }
     });
   }, []);
-  
+
   const saveToStorage = async (updatedGroups: TabGroups) => {
     await browser.storage.local.set({tabGroups: updatedGroups});
     setGroups(updatedGroups);
