@@ -1,6 +1,191 @@
 .container {
   min-width: 350px;
+  min-height: 200px;
   padding: 1rem;
+}
+
+.container.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+/* Auth Screen */
+.auth-screen {
+  min-width: 350px;
+  min-height: 200px;
+  padding: 1rem;
+}
+
+.auth-screen h1 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.auth-form h2 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 0.75rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.error-message {
+  color: #ff4646;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  background-color: rgba(255, 70, 70, 0.1);
+  border-radius: 4px;
+}
+
+.field-error {
+  color: #ff4646;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 0.6rem;
+  background-color: #646cff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.submit-btn:hover {
+  background-color: #535bf2;
+}
+
+.submit-btn:disabled {
+  background-color: #a0a0a0;
+  cursor: not-allowed;
+}
+
+.switch-auth {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #646cff;
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+  text-decoration: underline;
+}
+
+.link-btn:hover {
+  color: #535bf2;
+}
+
+/* Header */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #444;
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow: hidden;
+}
+
+.user-email {
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.sync-indicator {
+  font-size: 0.75rem;
+}
+
+.sync-indicator.idle {
+  color: #54bc4a;
+}
+
+.sync-indicator.syncing {
+  color: #f0ad4e;
+}
+
+.sync-indicator.error {
+  color: #ff4646;
+}
+
+.logout-btn {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  background-color: transparent;
+  border: 1px solid #666;
+  color: inherit;
+}
+
+.logout-btn:hover {
+  border-color: #ff4646;
+  color: #ff4646;
+}
+
+/* Back button */
+.back-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  background-color: transparent;
+  border: 1px solid #666;
+  color: inherit;
+  margin-bottom: 0.75rem;
+}
+
+.back-btn:hover {
+  border-color: #646cff;
+  color: #646cff;
+}
+
+/* Sync promo */
+.sync-promo {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #444;
+  text-align: center;
+}
+
+.sync-link {
+  font-size: 0.9rem;
 }
 
 h1 {
@@ -152,12 +337,15 @@ a:hover {
   color: #535bf2;
 }
 
+html, body {
+  height: fit-content;
+}
+
 body {
   margin: 0;
   display: flex;
   place-items: center;
   min-width: 320px;
-  min-height: 100vh;
 }
 
 button {
