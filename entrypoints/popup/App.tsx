@@ -4,6 +4,7 @@ import "@/assets/tailwind.css";
 import { useAuth } from "./hooks/useAuth";
 import { useGroups } from "./hooks/useGroups";
 import { AuthScreen } from "./components/AuthScreen";
+import { ConflictResolutionScreen } from "./components/ConflictResolutionScreen";
 import { Header } from "./components/Header";
 
 function App() {
@@ -24,10 +25,12 @@ function App() {
     activeGroupName,
     syncStatus,
     syncError,
+    pendingConflict,
     setActiveGroupName,
     saveGroup,
     deleteGroup,
     loadGroupsFromApi,
+    resolveConflict,
   } = useGroups(isAuthenticated);
 
   const [newGroupName, setNewGroupName] = useState("");
@@ -107,6 +110,16 @@ function App() {
         validationErrors={validationErrors}
         onClearError={clearError}
         onCancel={() => setShowAuthScreen(false)}
+      />
+    );
+  }
+
+  if (pendingConflict) {
+    return (
+      <ConflictResolutionScreen
+        conflict={pendingConflict}
+        onResolve={resolveConflict}
+        isLoading={syncStatus === "syncing"}
       />
     );
   }

@@ -185,6 +185,8 @@ export function useAuth(): UseAuthReturn {
     } finally {
       await clearAuthToken();
       await clearStoredUser();
+      // Clear local tab groups to prevent duplicate merge on next login
+      await browser.storage.local.remove(["tabGroups", "activeGroupName"]);
       setState({
         user: null,
         isAuthenticated: false,

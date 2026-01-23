@@ -10,15 +10,22 @@ import {
 
 type SyncStatus = "idle" | "syncing" | "error";
 
+export interface ConflictData {
+  localGroups: TabGroups;
+  apiGroups: TabGroups;
+}
+
 interface UseGroupsReturn {
   groups: TabGroups;
   activeGroupName: string | null;
   syncStatus: SyncStatus;
   syncError: string | null;
+  pendingConflict: ConflictData | null;
   setActiveGroupName: (name: string | null) => void;
   saveGroup: (name: string, urls: string[]) => Promise<void>;
   deleteGroup: (name: string) => Promise<void>;
   loadGroupsFromApi: () => Promise<void>;
+  resolveConflict: (choice: "discard" | "merge") => Promise<void>;
 }
 
 export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
@@ -28,12 +35,24 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
   );
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("idle");
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [pendingConflict, setPendingConflict] = useState<ConflictData | null>(
+    null
+  );
   const isInitialized = useRef(false);
 
   // Load groups from local storage on mount
   useEffect(() => {
     loadFromLocalStorage();
   }, []);
+
+  // Clear groups state when user logs out
+  useEffect(() => {
+    if (!isAuthenticated && isInitialized.current) {
+      setGroups({});
+      setActiveGroupNameState(null);
+      setPendingConflict(null);
+    }
+  }, [isAuthenticated]);
 
   // Sync with API when authenticated and groups change
   useEffect(() => {
@@ -79,22 +98,29 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
       const tabs = await fetchTabs();
       const apiGroups = tabsToGroups(tabs);
 
-      // Merge with local groups (API takes precedence)
+      // Get local groups
       const result = await browser.storage.local.get("tabGroups");
       const localGroups = (result.tabGroups as TabGroups) || {};
-      const mergedGroups = { ...localGroups, ...apiGroups };
 
-      // Check if there are local-only groups that need to be synced to API
-      const hasLocalOnlyGroups = Object.keys(localGroups).some(
-        (name) => !(name in apiGroups)
-      );
+      const hasLocalGroups = Object.keys(localGroups).length > 0;
+      const hasApiGroups = Object.keys(apiGroups).length > 0;
+
+      // If both local and API groups exist, we have a conflict
+      // Let the user decide how to resolve it
+      if (hasLocalGroups && hasApiGroups) {
+        setPendingConflict({ localGroups, apiGroups });
+        setSyncStatus("idle");
+        return;
+      }
+
+      // No conflict - proceed with merge
+      const mergedGroups = { ...localGroups, ...apiGroups };
 
       await browser.storage.local.set({ tabGroups: mergedGroups });
       setGroups(mergedGroups);
 
-      // If there are local groups not in API, sync them immediately
-      // This ensures offline groups are backed up after registration/login
-      if (hasLocalOnlyGroups) {
+      // If there are local-only groups, sync them to API
+      if (hasLocalGroups && !hasApiGroups) {
         const tabsPayload = groupsToTabs(mergedGroups);
         await syncTabs(tabsPayload);
       }
@@ -106,6 +132,40 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
       setSyncError(error instanceof Error ? error.message : "Sync failed");
     }
   }, [isAuthenticated]);
+
+  const resolveConflict = useCallback(
+    async (choice: "discard" | "merge") => {
+      if (!pendingConflict) return;
+
+      const { localGroups, apiGroups } = pendingConflict;
+
+      setSyncStatus("syncing");
+      try {
+        if (choice === "discard") {
+          // Discard local groups, use only API groups
+          await browser.storage.local.set({ tabGroups: apiGroups });
+          setGroups(apiGroups);
+        } else {
+          // Merge: local groups first, API takes precedence for same names
+          const mergedGroups = { ...localGroups, ...apiGroups };
+          await browser.storage.local.set({ tabGroups: mergedGroups });
+          setGroups(mergedGroups);
+
+          // Sync merged groups to API so local-only groups are backed up
+          const tabsPayload = groupsToTabs(mergedGroups);
+          await syncTabs(tabsPayload);
+        }
+
+        setPendingConflict(null);
+        setSyncStatus("idle");
+        setSyncError(null);
+      } catch (error) {
+        setSyncStatus("error");
+        setSyncError(error instanceof Error ? error.message : "Sync failed");
+      }
+    },
+    [pendingConflict]
+  );
 
   const saveGroup = useCallback(
     async (name: string, urls: string[]) => {
@@ -141,9 +201,11 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
     activeGroupName,
     syncStatus,
     syncError,
+    pendingConflict,
     setActiveGroupName,
     saveGroup,
     deleteGroup,
     loadGroupsFromApi,
+    resolveConflict,
   };
 }
