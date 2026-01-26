@@ -14,10 +14,12 @@ function App() {
     isLoading: authLoading,
     error: authError,
     validationErrors,
+    justLoggedIn,
     login,
     register,
     logout,
     clearError,
+    clearJustLoggedIn,
   } = useAuth();
 
   const {
@@ -37,13 +39,14 @@ function App() {
   const [warning, setWarning] = useState<string | null>(null);
   const [showAuthScreen, setShowAuthScreen] = useState(false);
 
-  // Load groups from API when user authenticates
+  // Load groups from API only when user just logged in (not on extension reopen)
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && justLoggedIn) {
       loadGroupsFromApi();
       setShowAuthScreen(false);
+      clearJustLoggedIn();
     }
-  }, [isAuthenticated, loadGroupsFromApi]);
+  }, [isAuthenticated, justLoggedIn, loadGroupsFromApi, clearJustLoggedIn]);
 
   const saveCurrentPinned = async (name: string) => {
     const nameToSave = name.trim();

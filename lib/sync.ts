@@ -30,7 +30,7 @@ export function tabsToGroups(tabs: PinnedTab[]): TabGroups {
   const groups: TabGroups = {};
 
   for (const tab of tabs) {
-    const groupName = tab.group_name || "Default";
+    const groupName = tab.group?.name || "Default";
     if (!groups[groupName]) {
       groups[groupName] = [];
     }

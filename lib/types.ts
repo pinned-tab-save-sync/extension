@@ -11,12 +11,18 @@ export interface AuthResponse {
   token: string;
 }
 
+export interface TabGroup {
+  id: number;
+  name: string;
+  position: number;
+}
+
 export interface PinnedTab {
   id: number;
   url: string;
   title: string | null;
   favicon_url: string | null;
-  group_name: string | null;
+  group: TabGroup | null;
   position: number;
   created_at: string;
   updated_at: string;

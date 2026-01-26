@@ -22,6 +22,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   validationErrors: ValidationErrors | null;
+  justLoggedIn: boolean;
 }
 
 interface UseAuthReturn extends AuthState {
@@ -33,6 +34,7 @@ interface UseAuthReturn extends AuthState {
   ) => Promise<boolean>;
   logout: () => Promise<void>;
   clearError: () => void;
+  clearJustLoggedIn: () => void;
 }
 
 export function useAuth(): UseAuthReturn {
@@ -42,6 +44,7 @@ export function useAuth(): UseAuthReturn {
     isLoading: true,
     error: null,
     validationErrors: null,
+    justLoggedIn: false,
   });
 
   useEffect(() => {
@@ -64,6 +67,7 @@ export function useAuth(): UseAuthReturn {
           isLoading: false,
           error: null,
           validationErrors: null,
+          justLoggedIn: false,
         });
         return;
       }
@@ -76,6 +80,7 @@ export function useAuth(): UseAuthReturn {
         isLoading: false,
         error: null,
         validationErrors: null,
+        justLoggedIn: false,
       });
     } catch {
       await clearAuthToken();
@@ -86,6 +91,7 @@ export function useAuth(): UseAuthReturn {
         isLoading: false,
         error: null,
         validationErrors: null,
+        justLoggedIn: false,
       });
     }
   };
@@ -110,6 +116,7 @@ export function useAuth(): UseAuthReturn {
           isLoading: false,
           error: null,
           validationErrors: null,
+          justLoggedIn: true,
         });
         return true;
       } catch (err) {
@@ -159,6 +166,7 @@ export function useAuth(): UseAuthReturn {
           isLoading: false,
           error: null,
           validationErrors: null,
+          justLoggedIn: true,
         });
         return true;
       } catch (err) {
@@ -193,8 +201,13 @@ export function useAuth(): UseAuthReturn {
         isLoading: false,
         error: null,
         validationErrors: null,
+        justLoggedIn: false,
       });
     }
+  }, []);
+
+  const clearJustLoggedIn = useCallback(() => {
+    setState((prev) => ({ ...prev, justLoggedIn: false }));
   }, []);
 
   const clearError = useCallback(() => {
@@ -207,5 +220,6 @@ export function useAuth(): UseAuthReturn {
     register,
     logout,
     clearError,
+    clearJustLoggedIn,
   };
 }
