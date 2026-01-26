@@ -72,20 +72,26 @@ function App() {
     const urls = groups[name];
     if (!urls || urls.length === 0) return;
 
-    const currentPinned = await browser.tabs.query({ pinned: true });
-    const currentIds = currentPinned
-      .map((tab) => tab.id)
-      .filter((id): id is number => id !== undefined);
+    try {
+      const currentPinned = await browser.tabs.query({ pinned: true });
+      const currentIds = currentPinned
+        .map((tab) => tab.id)
+        .filter((id): id is number => id !== undefined);
 
-    for (const url of urls) {
-      await browser.tabs.create({ url, pinned: true, active: false });
+      for (const url of urls) {
+        await browser.tabs.create({ url, pinned: true, active: false });
+      }
+
+      if (currentIds.length > 0) {
+        await browser.tabs.remove(currentIds);
+      }
+
+      await setActiveGroupName(name);
+    } catch (error) {
+      setWarning(
+        error instanceof Error ? error.message : "Failed to load group"
+      );
     }
-
-    if (currentIds.length > 0) {
-      await browser.tabs.remove(currentIds);
-    }
-
-    await setActiveGroupName(name);
   };
 
   const handleDeleteGroup = async (name: string) => {

@@ -1,6 +1,6 @@
 {
-  "name": "wxt-react-starter",
-  "description": "manifest.json description",
+  "name": "pinned-tab-save-and-sync",
+  "description": "Browser extension to save and sync groups of pinned tabs across devices",
   "private": true,
   "version": "0.0.0",
   "type": "module",

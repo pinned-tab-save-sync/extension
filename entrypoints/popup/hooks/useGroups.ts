@@ -10,6 +10,16 @@ import {
 
 type SyncStatus = "idle" | "syncing" | "error";
 
+function isValidTabGroups(value: unknown): value is TabGroups {
+  if (!value || typeof value !== "object") return false;
+  for (const [key, urls] of Object.entries(value)) {
+    if (typeof key !== "string") return false;
+    if (!Array.isArray(urls)) return false;
+    if (!urls.every((url) => typeof url === "string")) return false;
+  }
+  return true;
+}
+
 export interface ConflictData {
   localGroups: TabGroups;
   apiGroups: TabGroups;
@@ -81,11 +91,11 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
       "tabGroups",
       "activeGroupName",
     ]);
-    if (result.tabGroups) {
-      setGroups(result.tabGroups as TabGroups);
+    if (isValidTabGroups(result.tabGroups)) {
+      setGroups(result.tabGroups);
     }
-    if (result.activeGroupName) {
-      setActiveGroupNameState(result.activeGroupName as string);
+    if (typeof result.activeGroupName === "string") {
+      setActiveGroupNameState(result.activeGroupName);
     }
     isInitialized.current = true;
   };
@@ -100,7 +110,9 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
 
       // Get local groups
       const result = await browser.storage.local.get("tabGroups");
-      const localGroups = (result.tabGroups as TabGroups) || {};
+      const localGroups = isValidTabGroups(result.tabGroups)
+        ? result.tabGroups
+        : {};
 
       const hasLocalGroups = Object.keys(localGroups).length > 0;
       const hasApiGroups = Object.keys(apiGroups).length > 0;
