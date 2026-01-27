@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { TabGroups } from "@/lib/types";
+import type { TabGroups, SyncStatus } from "@/lib/types";
+import { STORAGE_KEYS } from "@/lib/storage/keys";
 import { fetchTabs, syncTabs } from "@/lib/api/tabs";
 import {
   tabsToGroups,
@@ -7,8 +8,6 @@ import {
   debouncedSync,
   cancelPendingSync,
 } from "@/lib/sync";
-
-type SyncStatus = "idle" | "syncing" | "error";
 
 function isValidTabGroups(value: unknown): value is TabGroups {
   if (!value || typeof value !== "object") return false;
@@ -88,14 +87,17 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
 
   const loadFromLocalStorage = async () => {
     const result = await browser.storage.local.get([
-      "tabGroups",
-      "activeGroupName",
+      STORAGE_KEYS.TAB_GROUPS,
+      STORAGE_KEYS.ACTIVE_GROUP,
     ]);
-    if (isValidTabGroups(result.tabGroups)) {
-      setGroups(result.tabGroups);
+    const storedGroups = result[STORAGE_KEYS.TAB_GROUPS];
+    const storedActiveGroup = result[STORAGE_KEYS.ACTIVE_GROUP];
+
+    if (isValidTabGroups(storedGroups)) {
+      setGroups(storedGroups);
     }
-    if (typeof result.activeGroupName === "string") {
-      setActiveGroupNameState(result.activeGroupName);
+    if (typeof storedActiveGroup === "string") {
+      setActiveGroupNameState(storedActiveGroup);
     }
     isInitialized.current = true;
   };
@@ -109,9 +111,10 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
       const apiGroups = tabsToGroups(tabs);
 
       // Get local groups
-      const result = await browser.storage.local.get("tabGroups");
-      const localGroups = isValidTabGroups(result.tabGroups)
-        ? result.tabGroups
+      const result = await browser.storage.local.get(STORAGE_KEYS.TAB_GROUPS);
+      const storedGroups = result[STORAGE_KEYS.TAB_GROUPS];
+      const localGroups: TabGroups = isValidTabGroups(storedGroups)
+        ? storedGroups
         : {};
 
       const hasLocalGroups = Object.keys(localGroups).length > 0;
@@ -128,7 +131,7 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
       // No conflict - proceed with merge
       const mergedGroups = { ...localGroups, ...apiGroups };
 
-      await browser.storage.local.set({ tabGroups: mergedGroups });
+      await browser.storage.local.set({ [STORAGE_KEYS.TAB_GROUPS]: mergedGroups });
       setGroups(mergedGroups);
 
       // If there are local-only groups, sync them to API
@@ -155,12 +158,12 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
       try {
         if (choice === "discard") {
           // Discard local groups, use only API groups
-          await browser.storage.local.set({ tabGroups: apiGroups });
+          await browser.storage.local.set({ [STORAGE_KEYS.TAB_GROUPS]: apiGroups });
           setGroups(apiGroups);
         } else {
           // Merge: local groups first, API takes precedence for same names
           const mergedGroups = { ...localGroups, ...apiGroups };
-          await browser.storage.local.set({ tabGroups: mergedGroups });
+          await browser.storage.local.set({ [STORAGE_KEYS.TAB_GROUPS]: mergedGroups });
           setGroups(mergedGroups);
 
           // Sync merged groups to API so local-only groups are backed up
@@ -181,23 +184,37 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
 
   const saveGroup = useCallback(
     async (name: string, urls: string[]) => {
-      const updatedGroups = { ...groups, [name]: urls };
-      await browser.storage.local.set({ tabGroups: updatedGroups });
-      setGroups(updatedGroups);
+      try {
+        const updatedGroups = { ...groups, [name]: urls };
+        await browser.storage.local.set({ [STORAGE_KEYS.TAB_GROUPS]: updatedGroups });
+        setGroups(updatedGroups);
+        setSyncError(null);
+      } catch (error) {
+        setSyncStatus("error");
+        setSyncError(error instanceof Error ? error.message : "Failed to save group");
+        throw error;
+      }
     },
     [groups]
   );
 
   const deleteGroup = useCallback(
     async (name: string) => {
-      const updatedGroups = { ...groups };
-      delete updatedGroups[name];
-      await browser.storage.local.set({ tabGroups: updatedGroups });
-      setGroups(updatedGroups);
+      try {
+        const updatedGroups = { ...groups };
+        delete updatedGroups[name];
+        await browser.storage.local.set({ [STORAGE_KEYS.TAB_GROUPS]: updatedGroups });
+        setGroups(updatedGroups);
 
-      if (activeGroupName === name) {
-        setActiveGroupNameState(null);
-        await browser.storage.local.set({ activeGroupName: null });
+        if (activeGroupName === name) {
+          setActiveGroupNameState(null);
+          await browser.storage.local.set({ [STORAGE_KEYS.ACTIVE_GROUP]: null });
+        }
+        setSyncError(null);
+      } catch (error) {
+        setSyncStatus("error");
+        setSyncError(error instanceof Error ? error.message : "Failed to delete group");
+        throw error;
       }
     },
     [groups, activeGroupName]
@@ -205,7 +222,7 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
 
   const setActiveGroupName = useCallback(async (name: string | null) => {
     setActiveGroupNameState(name);
-    await browser.storage.local.set({ activeGroupName: name });
+    await browser.storage.local.set({ [STORAGE_KEYS.ACTIVE_GROUP]: name });
   }, []);
 
   return {

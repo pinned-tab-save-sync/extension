@@ -40,3 +40,5 @@ export interface ApiError {
 export interface ValidationErrors {
   [field: string]: string[];
 }
+
+export type SyncStatus = "idle" | "syncing" | "error";

@@ -1,6 +1,4 @@
-import type { User } from "@/lib/types";
-
-type SyncStatus = "idle" | "syncing" | "error";
+import type { User, SyncStatus } from "@/lib/types";
 
 interface HeaderProps {
   user: User;

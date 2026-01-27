@@ -38,6 +38,7 @@ function App() {
   const [newGroupName, setNewGroupName] = useState("");
   const [warning, setWarning] = useState<string | null>(null);
   const [showAuthScreen, setShowAuthScreen] = useState(false);
+  const [isLoadingGroup, setIsLoadingGroup] = useState(false);
 
   // Load groups from API only when user just logged in (not on extension reopen)
   useEffect(() => {
@@ -72,15 +73,16 @@ function App() {
     const urls = groups[name];
     if (!urls || urls.length === 0) return;
 
+    setIsLoadingGroup(true);
     try {
       const currentPinned = await browser.tabs.query({ pinned: true });
       const currentIds = currentPinned
         .map((tab) => tab.id)
         .filter((id): id is number => id !== undefined);
 
-      for (const url of urls) {
-        await browser.tabs.create({ url, pinned: true, active: false });
-      }
+      await Promise.all(
+        urls.map((url) => browser.tabs.create({ url, pinned: true, active: false }))
+      );
 
       if (currentIds.length > 0) {
         await browser.tabs.remove(currentIds);
@@ -91,6 +93,8 @@ function App() {
       setWarning(
         error instanceof Error ? error.message : "Failed to load group"
       );
+    } finally {
+      setIsLoadingGroup(false);
     }
   };
 
@@ -188,12 +192,17 @@ function App() {
                   <span className="group-count">({urls.length} tabs)</span>
                 </div>
                 <div className="group-actions">
-                  <button onClick={() => loadGroup(name)} className="load-btn">
-                    Load
+                  <button
+                    onClick={() => loadGroup(name)}
+                    className="load-btn"
+                    disabled={isLoadingGroup}
+                  >
+                    {isLoadingGroup ? "Loading..." : "Load"}
                   </button>
                   <button
                     onClick={() => handleDeleteGroup(name)}
                     className="delete-btn"
+                    disabled={isLoadingGroup}
                   >
                     Delete
                   </button>
@@ -204,6 +213,7 @@ function App() {
                         saveCurrentPinned(name);
                       }}
                       className="save-btn"
+                      disabled={isLoadingGroup}
                     >
                       Save
                     </button>

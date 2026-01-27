@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import type { User, ValidationErrors } from "@/lib/types";
+import { STORAGE_KEYS } from "@/lib/storage/keys";
 import {
   getAuthToken,
   setAuthToken,
@@ -194,7 +195,7 @@ export function useAuth(): UseAuthReturn {
       await clearAuthToken();
       await clearStoredUser();
       // Clear local tab groups to prevent duplicate merge on next login
-      await browser.storage.local.remove(["tabGroups", "activeGroupName"]);
+      await browser.storage.local.remove([STORAGE_KEYS.TAB_GROUPS, STORAGE_KEYS.ACTIVE_GROUP]);
       setState({
         user: null,
         isAuthenticated: false,
