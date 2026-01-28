@@ -130,6 +130,13 @@ export function useAuth(): UseAuthReturn {
         isLoading: false,
         justLoggedIn: false,
       });
+
+      // Open the web logout page to clear the web session
+      // This prevents auto-login when clicking login again
+      browser.tabs.create({
+        url: `${API_WEB_URL}/auth/extension/logout`,
+        active: false,
+      });
     }
   }, []);
 

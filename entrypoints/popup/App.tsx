@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import "./App.css";
 import "@/assets/tailwind.css";
 import { useAuth } from "./hooks/useAuth";
 import { useGroups } from "./hooks/useGroups";
 import { AuthScreen } from "./components/AuthScreen";
 import { ConflictResolutionScreen } from "./components/ConflictResolutionScreen";
 import { Header } from "./components/Header";
+import { Button } from "./components/ui/Button";
 
 function App() {
   const {
@@ -104,7 +104,7 @@ function App() {
 
   if (authLoading) {
     return (
-      <div className="container loading">
+      <div className="min-w-[350px] min-h-[200px] p-4 flex items-center justify-center">
         <p>Loading...</p>
       </div>
     );
@@ -131,7 +131,7 @@ function App() {
   }
 
   return (
-    <div className="container">
+    <div className="min-w-[350px] min-h-[200px] p-4 font-sans text-white/85 bg-[#242424]">
       {isAuthenticated && user ? (
         <Header
           user={user}
@@ -141,10 +141,10 @@ function App() {
         />
       ) : null}
 
-      <h1>Pinned Tab Save & Sync</h1>
+      <h1 className="text-4xl leading-none mb-6">Pinned Tab Save & Sync</h1>
 
-      <div className="save-section">
-        <div className="input-group">
+      <div className="flex gap-2 mb-6 items-start">
+        <div className="flex-1 flex flex-col">
           <input
             type="text"
             value={newGroupName}
@@ -153,63 +153,67 @@ function App() {
               setWarning(null);
             }}
             placeholder="Group name..."
+            className="w-full p-2 rounded border border-gray-300 bg-gray-100 text-gray-800 box-border"
           />
-          <div className="warning-container">
-            {warning && <p className="warning-text">{warning}</p>}
+          <div className="min-h-6">
+            {warning && <p className="text-red-500 text-xs mt-1 text-left">{warning}</p>}
           </div>
         </div>
-        <button
+        <Button
+          variant="success"
           onClick={() => {
             setWarning(null);
             saveCurrentPinned(newGroupName);
           }}
-          className="save-btn"
+          className="px-3 py-2"
         >
           Save
-        </button>
+        </Button>
       </div>
 
-      <div className="groups-section">
-        <h2>Saved Groups</h2>
+      <div>
+        <h2 className="text-lg text-left">Saved Groups</h2>
         {Object.keys(groups).length === 0 ? (
           <p>No saved groups yet.</p>
         ) : (
-          <ul className="groups-list">
+          <ul className="list-none p-0 m-0">
             {Object.entries(groups).map(([name, urls]) => (
               <li
                 key={name}
-                className={activeGroupName === name ? "active" : ""}
+                className={`flex justify-between items-center p-3 border-b border-gray-700 gap-2 ${
+                  activeGroupName === name ? "bg-indigo-500/10 rounded" : ""
+                }`}
               >
-                <div className="group-info">
-                  <span className="group-name">{name}</span>
-                  <span className="group-count">({urls.length} tabs)</span>
+                <div className="flex flex-col items-start flex-1 overflow-hidden">
+                  <span className="font-semibold whitespace-nowrap overflow-hidden text-ellipsis w-full">{name}</span>
+                  <span className="text-sm text-gray-400">({urls.length} tabs)</span>
                 </div>
-                <div className="group-actions">
-                  <button
+                <div className="flex gap-1">
+                  <Button
+                    variant="primary"
                     onClick={() => loadGroup(name)}
-                    className="load-btn"
                     disabled={isLoadingGroup}
                   >
                     {isLoadingGroup ? "Loading..." : "Load"}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="danger"
                     onClick={() => handleDeleteGroup(name)}
-                    className="delete-btn"
                     disabled={isLoadingGroup}
                   >
                     Delete
-                  </button>
+                  </Button>
                   {activeGroupName === name && (
-                    <button
+                    <Button
+                      variant="success"
                       onClick={() => {
                         setWarning(null);
                         saveCurrentPinned(name);
                       }}
-                      className="save-btn"
                       disabled={isLoadingGroup}
                     >
                       Save
-                    </button>
+                    </Button>
                   )}
                 </div>
               </li>
@@ -219,13 +223,10 @@ function App() {
       </div>
 
       {!isAuthenticated && (
-        <div className="sync-promo">
-          <button
-            onClick={() => setShowAuthScreen(true)}
-            className="link-btn sync-link"
-          >
+        <div className="mt-6 pt-4 border-t border-gray-600 text-center">
+          <Button variant="ghost" onClick={() => setShowAuthScreen(true)}>
             Sign up to sync across browsers
-          </button>
+          </Button>
         </div>
       )}
     </div>

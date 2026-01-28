@@ -49,11 +49,28 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
   );
   const isInitialized = useRef(false);
   const wasAuthenticated = useRef(false);
+  // Tracks whether we've loaded groups from API after login - prevents syncing empty groups
+  const hasLoadedFromApi = useRef(false);
+  // Tracks if user was already authenticated on initial mount (vs. logging in after mount)
+  const wasAuthenticatedOnMount = useRef<boolean | null>(null);
 
   // Load groups from local storage on mount
   useEffect(() => {
     loadFromLocalStorage();
   }, []);
+
+  // Track if user was already authenticated on mount
+  // If so, we can trust local storage and enable syncing immediately
+  // If not (user logged in after mount), we need to wait for loadGroupsFromApi
+  useEffect(() => {
+    if (wasAuthenticatedOnMount.current === null) {
+      wasAuthenticatedOnMount.current = isAuthenticated;
+      // If already authenticated on mount, we can trust local storage for syncing
+      if (isAuthenticated) {
+        hasLoadedFromApi.current = true;
+      }
+    }
+  }, [isAuthenticated]);
 
   // Clear groups state when user logs out (not during initial auth check)
   useEffect(() => {
@@ -62,13 +79,21 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
       setGroups({});
       setActiveGroupNameState(null);
       setPendingConflict(null);
+      // Reset the API load flag so we don't sync empty groups on next login
+      hasLoadedFromApi.current = false;
+      // Reset mount tracking since user logged out
+      wasAuthenticatedOnMount.current = false;
     }
     wasAuthenticated.current = isAuthenticated;
   }, [isAuthenticated]);
 
   // Sync with API when authenticated and groups change
   useEffect(() => {
-    if (!isAuthenticated || !isInitialized.current) {
+    // Don't sync if:
+    // - Not authenticated
+    // - Not initialized from local storage
+    // - Haven't loaded from API yet after login (prevents syncing empty groups)
+    if (!isAuthenticated || !isInitialized.current || !hasLoadedFromApi.current) {
       return;
     }
 
@@ -127,6 +152,8 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
       // Let the user decide how to resolve it
       if (hasLocalGroups && hasApiGroups) {
         setPendingConflict({ localGroups, apiGroups });
+        // Mark as loaded so subsequent changes can sync (after conflict resolution)
+        hasLoadedFromApi.current = true;
         setSyncStatus("idle");
         return;
       }
@@ -136,6 +163,9 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
 
       await browser.storage.local.set({ [STORAGE_KEYS.TAB_GROUPS]: mergedGroups });
       setGroups(mergedGroups);
+
+      // Mark as loaded from API - this enables syncing for subsequent changes
+      hasLoadedFromApi.current = true;
 
       // If there are local-only groups, sync them to API
       if (hasLocalGroups && !hasApiGroups) {
