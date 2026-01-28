@@ -1,68 +1,40 @@
-import { useState } from "react";
-import type { ValidationErrors } from "@/lib/types";
-import { LoginForm } from "./LoginForm";
-import { RegisterForm } from "./RegisterForm";
-
-type AuthMode = "login" | "register";
-
 interface AuthScreenProps {
-  onLogin: (email: string, password: string) => Promise<boolean>;
-  onRegister: (
-    email: string,
-    password: string,
-    passwordConfirmation: string
-  ) => Promise<boolean>;
-  isLoading: boolean;
-  error: string | null;
-  validationErrors: ValidationErrors | null;
-  onClearError: () => void;
+  onOpenLogin: () => void;
+  onOpenRegister: () => void;
   onCancel: () => void;
 }
 
 export function AuthScreen({
-  onLogin,
-  onRegister,
-  isLoading,
-  error,
-  validationErrors,
-  onClearError,
+  onOpenLogin,
+  onOpenRegister,
   onCancel,
 }: AuthScreenProps) {
-  const [mode, setMode] = useState<AuthMode>("register");
-
-  const handleSwitchToRegister = () => {
-    onClearError();
-    setMode("register");
-  };
-
-  const handleSwitchToLogin = () => {
-    onClearError();
-    setMode("login");
-  };
-
   return (
     <div className="auth-screen">
-      <button onClick={onCancel} className="back-btn" disabled={isLoading}>
+      <button onClick={onCancel} className="back-btn">
         &larr; Back
       </button>
       <h1>Pinned Tab Save & Sync</h1>
-      {mode === "login" ? (
-        <LoginForm
-          onSubmit={onLogin}
-          onSwitchToRegister={handleSwitchToRegister}
-          isLoading={isLoading}
-          error={error}
-          validationErrors={validationErrors}
-        />
-      ) : (
-        <RegisterForm
-          onSubmit={onRegister}
-          onSwitchToLogin={handleSwitchToLogin}
-          isLoading={isLoading}
-          error={error}
-          validationErrors={validationErrors}
-        />
-      )}
+
+      <div className="auth-options">
+        <p className="auth-description">
+          Sign in or create an account to sync your pinned tabs across all your
+          browsers and devices.
+        </p>
+
+        <div className="auth-buttons">
+          <button onClick={onOpenLogin} className="submit-btn">
+            Sign In
+          </button>
+          <button onClick={onOpenRegister} className="submit-btn secondary">
+            Create Account
+          </button>
+        </div>
+
+        <p className="auth-note">
+          A new tab will open for you to sign in securely.
+        </p>
+      </div>
     </div>
   );
 }

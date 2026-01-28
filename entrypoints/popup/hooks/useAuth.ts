@@ -1,40 +1,29 @@
 import { useState, useEffect, useCallback } from "react";
-import type { User, ValidationErrors } from "@/lib/types";
+import type { User } from "@/lib/types";
 import { STORAGE_KEYS } from "@/lib/storage/keys";
 import {
   getAuthToken,
-  setAuthToken,
   clearAuthToken,
   getStoredUser,
   setStoredUser,
   clearStoredUser,
 } from "@/lib/storage/auth";
-import {
-  login as apiLogin,
-  register as apiRegister,
-  logout as apiLogout,
-  getCurrentUser,
-} from "@/lib/api/auth";
-import { ApiClientError } from "@/lib/api/client";
+import { logout as apiLogout, getCurrentUser } from "@/lib/api/auth";
+
+// API base URL for auth pages (web routes, not API routes)
+const API_WEB_URL = import.meta.env.VITE_API_URL?.replace("/api/v1", "") || "http://localhost:8000";
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  error: string | null;
-  validationErrors: ValidationErrors | null;
   justLoggedIn: boolean;
 }
 
 interface UseAuthReturn extends AuthState {
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (
-    email: string,
-    password: string,
-    passwordConfirmation: string
-  ) => Promise<boolean>;
+  openLogin: () => void;
+  openRegister: () => void;
   logout: () => Promise<void>;
-  clearError: () => void;
   clearJustLoggedIn: () => void;
 }
 
@@ -43,16 +32,36 @@ export function useAuth(): UseAuthReturn {
     user: null,
     isAuthenticated: false,
     isLoading: true,
-    error: null,
-    validationErrors: null,
     justLoggedIn: false,
   });
 
+  // Check initial auth status
   useEffect(() => {
     checkAuthStatus();
   }, []);
 
-  const checkAuthStatus = async () => {
+  // Listen for storage changes (when auth completes via content script)
+  useEffect(() => {
+    const handleStorageChange = (
+      changes: { [key: string]: { newValue?: unknown; oldValue?: unknown } },
+      areaName: string
+    ) => {
+      if (areaName !== "local") return;
+
+      // Check if auth token was added
+      if (changes[STORAGE_KEYS.AUTH_TOKEN]?.newValue) {
+        // Re-check auth status to update the UI
+        checkAuthStatus(true);
+      }
+    };
+
+    browser.storage.onChanged.addListener(handleStorageChange);
+    return () => {
+      browser.storage.onChanged.removeListener(handleStorageChange);
+    };
+  }, []);
+
+  const checkAuthStatus = async (justLoggedIn = false) => {
     try {
       const token = await getAuthToken();
       if (!token) {
@@ -66,9 +75,7 @@ export function useAuth(): UseAuthReturn {
           user: storedUser,
           isAuthenticated: true,
           isLoading: false,
-          error: null,
-          validationErrors: null,
-          justLoggedIn: false,
+          justLoggedIn,
         });
         return;
       }
@@ -79,9 +86,7 @@ export function useAuth(): UseAuthReturn {
         user,
         isAuthenticated: true,
         isLoading: false,
-        error: null,
-        validationErrors: null,
-        justLoggedIn: false,
+        justLoggedIn,
       });
     } catch {
       await clearAuthToken();
@@ -90,101 +95,24 @@ export function useAuth(): UseAuthReturn {
         user: null,
         isAuthenticated: false,
         isLoading: false,
-        error: null,
-        validationErrors: null,
         justLoggedIn: false,
       });
     }
   };
 
-  const login = useCallback(
-    async (email: string, password: string): Promise<boolean> => {
-      setState((prev) => ({
-        ...prev,
-        isLoading: true,
-        error: null,
-        validationErrors: null,
-      }));
+  const openLogin = useCallback(() => {
+    browser.tabs.create({
+      url: `${API_WEB_URL}/auth/extension/login`,
+      active: true,
+    });
+  }, []);
 
-      try {
-        const response = await apiLogin(email, password);
-        await setAuthToken(response.token);
-        await setStoredUser(response.user);
-
-        setState({
-          user: response.user,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null,
-          validationErrors: null,
-          justLoggedIn: true,
-        });
-        return true;
-      } catch (err) {
-        const error =
-          err instanceof ApiClientError ? err : new Error("Login failed");
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          error: error.message,
-          validationErrors:
-            err instanceof ApiClientError ? err.errors ?? null : null,
-        }));
-        return false;
-      }
-    },
-    []
-  );
-
-  const register = useCallback(
-    async (
-      email: string,
-      password: string,
-      passwordConfirmation: string
-    ): Promise<boolean> => {
-      setState((prev) => ({
-        ...prev,
-        isLoading: true,
-        error: null,
-        validationErrors: null,
-      }));
-
-      try {
-        // Derive name from email (part before @)
-        const name = email.split("@")[0] || email;
-        const response = await apiRegister(
-          name,
-          email,
-          password,
-          passwordConfirmation
-        );
-        await setAuthToken(response.token);
-        await setStoredUser(response.user);
-
-        setState({
-          user: response.user,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null,
-          validationErrors: null,
-          justLoggedIn: true,
-        });
-        return true;
-      } catch (err) {
-        const error =
-          err instanceof ApiClientError ? err : new Error("Registration failed");
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          error: error.message,
-          validationErrors:
-            err instanceof ApiClientError ? err.errors ?? null : null,
-        }));
-        return false;
-      }
-    },
-    []
-  );
+  const openRegister = useCallback(() => {
+    browser.tabs.create({
+      url: `${API_WEB_URL}/auth/extension/register`,
+      active: true,
+    });
+  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -200,8 +128,6 @@ export function useAuth(): UseAuthReturn {
         user: null,
         isAuthenticated: false,
         isLoading: false,
-        error: null,
-        validationErrors: null,
         justLoggedIn: false,
       });
     }
@@ -211,16 +137,11 @@ export function useAuth(): UseAuthReturn {
     setState((prev) => ({ ...prev, justLoggedIn: false }));
   }, []);
 
-  const clearError = useCallback(() => {
-    setState((prev) => ({ ...prev, error: null, validationErrors: null }));
-  }, []);
-
   return {
     ...state,
-    login,
-    register,
+    openLogin,
+    openRegister,
     logout,
-    clearError,
     clearJustLoggedIn,
   };
 }

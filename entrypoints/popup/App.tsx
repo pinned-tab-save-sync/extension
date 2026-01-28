@@ -12,13 +12,10 @@ function App() {
     user,
     isAuthenticated,
     isLoading: authLoading,
-    error: authError,
-    validationErrors,
     justLoggedIn,
-    login,
-    register,
+    openLogin,
+    openRegister,
     logout,
-    clearError,
     clearJustLoggedIn,
   } = useAuth();
 
@@ -116,12 +113,8 @@ function App() {
   if (showAuthScreen && !isAuthenticated) {
     return (
       <AuthScreen
-        onLogin={login}
-        onRegister={register}
-        isLoading={authLoading}
-        error={authError}
-        validationErrors={validationErrors}
-        onClearError={clearError}
+        onOpenLogin={openLogin}
+        onOpenRegister={openRegister}
         onCancel={() => setShowAuthScreen(false)}
       />
     );

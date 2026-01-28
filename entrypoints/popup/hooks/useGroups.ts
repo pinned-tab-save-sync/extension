@@ -48,19 +48,22 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
     null
   );
   const isInitialized = useRef(false);
+  const wasAuthenticated = useRef(false);
 
   // Load groups from local storage on mount
   useEffect(() => {
     loadFromLocalStorage();
   }, []);
 
-  // Clear groups state when user logs out
+  // Clear groups state when user logs out (not during initial auth check)
   useEffect(() => {
-    if (!isAuthenticated && isInitialized.current) {
+    // Only clear groups if user was previously authenticated and is now logged out
+    if (wasAuthenticated.current && !isAuthenticated && isInitialized.current) {
       setGroups({});
       setActiveGroupNameState(null);
       setPendingConflict(null);
     }
+    wasAuthenticated.current = isAuthenticated;
   }, [isAuthenticated]);
 
   // Sync with API when authenticated and groups change

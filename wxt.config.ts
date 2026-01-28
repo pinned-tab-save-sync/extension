@@ -5,8 +5,12 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
   manifest: {
-    permissions: ["tabs", "storage"],
+    permissions: ["tabs", "storage", "scripting"],
     name: "Pinned Tab Save & Sync",
+    host_permissions: [
+      "http://localhost:8000/*",
+      "http://127.0.0.1:8000/*",
+    ],
   },
   vite: () => ({
     plugins: [tailwindcss()],
