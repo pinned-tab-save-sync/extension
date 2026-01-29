@@ -12,7 +12,7 @@ export function AuthScreen({
   onCancel,
 }: AuthScreenProps) {
   return (
-    <div className="min-w-[350px] min-h-[200px] p-4 font-sans text-white/85 bg-[#242424]">
+    <div className="min-w-[550px] min-h-[200px] p-4 font-sans text-white/85 bg-[#242424]">
       <Button
         variant="outline"
         onClick={onCancel}

@@ -29,15 +29,28 @@ export class ApiClient {
 
     if (!skipAuth) {
       const token = await getAuthToken();
+      console.log("[API Client] Token present:", !!token);
       if (token) {
         headers.Authorization = `Bearer ${token}`;
       }
     }
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      ...fetchOptions,
-      headers,
-    });
+    const url = `${this.baseUrl}${endpoint}`;
+    console.log("[API Client] Request:", fetchOptions.method || "GET", url);
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        ...fetchOptions,
+        headers,
+      });
+    } catch (error) {
+      // Network failure (fetch throws TypeError on network issues)
+      console.error("[API Client] Network error:", error);
+      throw new NetworkError("Unable to connect to server");
+    }
+
+    console.log("[API Client] Response status:", response.status);
 
     if (response.status === 401 && !skipAuth) {
       await clearAuthToken();
@@ -92,6 +105,13 @@ export class ApiClientError extends Error {
   ) {
     super(message);
     this.name = "ApiClientError";
+  }
+}
+
+export class NetworkError extends Error {
+  constructor(message: string = "Unable to connect to server") {
+    super(message);
+    this.name = "NetworkError";
   }
 }
 

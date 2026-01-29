@@ -60,7 +60,8 @@ async function injectAuthScript(tabId: number): Promise<void> {
 
           if (pageData.props?.token && pageData.props?.user) {
             console.log("[Injected Script] Found auth data, sending to background...");
-            chrome.runtime.sendMessage({
+            // Use globalThis.chrome since this runs in injected script context
+            (globalThis as unknown as { chrome: typeof browser }).chrome.runtime.sendMessage({
               type: "AUTH_TOKEN_RECEIVED",
               token: pageData.props.token,
               user: pageData.props.user,

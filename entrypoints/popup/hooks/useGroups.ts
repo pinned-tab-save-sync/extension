@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { TabGroups, SyncStatus } from "@/lib/types";
 import { STORAGE_KEYS } from "@/lib/storage/keys";
 import { fetchTabs, syncTabs } from "@/lib/api/tabs";
+import { NetworkError } from "@/lib/api/client";
 import {
   tabsToGroups,
   groupsToTabs,
@@ -19,110 +20,143 @@ function isValidTabGroups(value: unknown): value is TabGroups {
   return true;
 }
 
-export interface ConflictData {
-  localGroups: TabGroups;
-  apiGroups: TabGroups;
+function isValidGroupOrder(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
 interface UseGroupsReturn {
   groups: TabGroups;
+  groupOrder: string[];
   activeGroupName: string | null;
   syncStatus: SyncStatus;
   syncError: string | null;
-  pendingConflict: ConflictData | null;
+  isOffline: boolean;
   setActiveGroupName: (name: string | null) => void;
   saveGroup: (name: string, urls: string[]) => Promise<void>;
   deleteGroup: (name: string) => Promise<void>;
+  reorderGroups: (fromIndex: number, toIndex: number) => Promise<void>;
   loadGroupsFromApi: () => Promise<void>;
-  resolveConflict: (choice: "discard" | "merge") => Promise<void>;
 }
 
 export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
   const [groups, setGroups] = useState<TabGroups>({});
+  const [groupOrder, setGroupOrder] = useState<string[]>([]);
   const [activeGroupName, setActiveGroupNameState] = useState<string | null>(
     null
   );
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("idle");
   const [syncError, setSyncError] = useState<string | null>(null);
-  const [pendingConflict, setPendingConflict] = useState<ConflictData | null>(
-    null
-  );
+  const [isOffline, setIsOffline] = useState(false);
   const isInitialized = useRef(false);
   const wasAuthenticated = useRef(false);
-  // Tracks whether we've loaded groups from API after login - prevents syncing empty groups
+  // Tracks whether we've loaded groups from API - prevents syncing before we know remote state
   const hasLoadedFromApi = useRef(false);
-  // Tracks if user was already authenticated on initial mount (vs. logging in after mount)
-  const wasAuthenticatedOnMount = useRef<boolean | null>(null);
+  // Tracks if we're currently loading from API (to prevent duplicate calls)
+  const isLoadingFromApi = useRef(false);
 
   // Load groups from local storage on mount
   useEffect(() => {
     loadFromLocalStorage();
   }, []);
 
-  // Track if user was already authenticated on mount
-  // If so, we can trust local storage and enable syncing immediately
-  // If not (user logged in after mount), we need to wait for loadGroupsFromApi
-  useEffect(() => {
-    if (wasAuthenticatedOnMount.current === null) {
-      wasAuthenticatedOnMount.current = isAuthenticated;
-      // If already authenticated on mount, we can trust local storage for syncing
-      if (isAuthenticated) {
-        hasLoadedFromApi.current = true;
-      }
-    }
-  }, [isAuthenticated]);
-
-  // Clear groups state when user logs out (not during initial auth check)
+  // Clear groups state when user logs out
   useEffect(() => {
     // Only clear groups if user was previously authenticated and is now logged out
     if (wasAuthenticated.current && !isAuthenticated && isInitialized.current) {
+      console.log("[useGroups] User logged out, clearing state");
       setGroups({});
+      setGroupOrder([]);
       setActiveGroupNameState(null);
-      setPendingConflict(null);
-      // Reset the API load flag so we don't sync empty groups on next login
+      // Reset the API load flag so we load from API on next login
       hasLoadedFromApi.current = false;
-      // Reset mount tracking since user logged out
-      wasAuthenticatedOnMount.current = false;
+      isLoadingFromApi.current = false;
     }
     wasAuthenticated.current = isAuthenticated;
   }, [isAuthenticated]);
 
-  // Sync with API when authenticated and groups change
+  // Auto-load from API when authenticated and initialized (but not yet loaded)
   useEffect(() => {
+    console.log("[useGroups] Auto-load effect:", {
+      isAuthenticated,
+      isInitialized: isInitialized.current,
+      hasLoadedFromApi: hasLoadedFromApi.current,
+      isLoadingFromApi: isLoadingFromApi.current,
+    });
+
+    // When authenticated and initialized, but haven't loaded from API yet, do it now
+    if (isAuthenticated && isInitialized.current && !hasLoadedFromApi.current && !isLoadingFromApi.current) {
+      console.log("[useGroups] Auto-loading from API...");
+      isLoadingFromApi.current = true;
+      loadGroupsFromApiInternal();
+    }
+  }, [isAuthenticated, groups]); // Also trigger when groups change (after loadFromLocalStorage)
+
+  // Sync with API when authenticated and groups/order change
+  useEffect(() => {
+    console.log("[useGroups] Sync effect triggered", {
+      isAuthenticated,
+      isInitialized: isInitialized.current,
+      hasLoadedFromApi: hasLoadedFromApi.current,
+      groupCount: Object.keys(groups).length,
+    });
     // Don't sync if:
     // - Not authenticated
     // - Not initialized from local storage
-    // - Haven't loaded from API yet after login (prevents syncing empty groups)
+    // - Haven't loaded from API yet (prevents syncing before we know remote state)
     if (!isAuthenticated || !isInitialized.current || !hasLoadedFromApi.current) {
+      console.log("[useGroups] Sync skipped - conditions not met");
       return;
     }
 
+    console.log("[useGroups] Starting debounced sync...");
     debouncedSync(
       groups,
+      groupOrder,
       () => setSyncStatus("syncing"),
       () => {
         setSyncStatus("idle");
         setSyncError(null);
+        setIsOffline(false);
       },
       (error) => {
         setSyncStatus("error");
-        setSyncError(error.message);
+        if (error instanceof NetworkError) {
+          setIsOffline(true);
+          setSyncError("Working offline");
+        } else {
+          setIsOffline(false);
+          setSyncError(error.message);
+        }
       }
     );
 
     return () => cancelPendingSync();
-  }, [groups, isAuthenticated]);
+  }, [groups, groupOrder, isAuthenticated]);
 
   const loadFromLocalStorage = async () => {
     const result = await browser.storage.local.get([
       STORAGE_KEYS.TAB_GROUPS,
       STORAGE_KEYS.ACTIVE_GROUP,
+      STORAGE_KEYS.GROUP_ORDER,
     ]);
     const storedGroups = result[STORAGE_KEYS.TAB_GROUPS];
     const storedActiveGroup = result[STORAGE_KEYS.ACTIVE_GROUP];
+    const storedOrder = result[STORAGE_KEYS.GROUP_ORDER];
 
     if (isValidTabGroups(storedGroups)) {
       setGroups(storedGroups);
+      // Use stored order if valid, otherwise derive from groups
+      if (isValidGroupOrder(storedOrder)) {
+        // Filter out any names that no longer exist in groups
+        const validOrder = storedOrder.filter((name) => name in storedGroups);
+        // Add any groups that aren't in the order
+        const missingGroups = Object.keys(storedGroups).filter(
+          (name) => !validOrder.includes(name)
+        );
+        setGroupOrder([...validOrder, ...missingGroups]);
+      } else {
+        setGroupOrder(Object.keys(storedGroups));
+      }
     }
     if (typeof storedActiveGroup === "string") {
       setActiveGroupNameState(storedActiveGroup);
@@ -130,97 +164,107 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
     isInitialized.current = true;
   };
 
-  const loadGroupsFromApi = useCallback(async () => {
-    if (!isAuthenticated) return;
+  // Internal function to load groups from API - implements API-first sync strategy
+  const loadGroupsFromApiInternal = async () => {
+    console.log("[useGroups] loadGroupsFromApiInternal called");
 
     setSyncStatus("syncing");
     try {
-      const tabs = await fetchTabs();
-      const apiGroups = tabsToGroups(tabs);
+      console.log("[useGroups] Fetching tabs from API...");
+      const apiTabs = await fetchTabs();
+      console.log("[useGroups] Fetched tabs:", apiTabs);
+      const { groups: apiGroups, groupOrder: apiOrder } = tabsToGroups(apiTabs);
 
-      // Get local groups
-      const result = await browser.storage.local.get(STORAGE_KEYS.TAB_GROUPS);
-      const storedGroups = result[STORAGE_KEYS.TAB_GROUPS];
-      const localGroups: TabGroups = isValidTabGroups(storedGroups)
-        ? storedGroups
-        : {};
-
-      const hasLocalGroups = Object.keys(localGroups).length > 0;
       const hasApiGroups = Object.keys(apiGroups).length > 0;
 
-      // If both local and API groups exist, we have a conflict
-      // Let the user decide how to resolve it
-      if (hasLocalGroups && hasApiGroups) {
-        setPendingConflict({ localGroups, apiGroups });
-        // Mark as loaded so subsequent changes can sync (after conflict resolution)
-        hasLoadedFromApi.current = true;
-        setSyncStatus("idle");
-        return;
+      if (hasApiGroups) {
+        // API has data - use it as source of truth
+        console.log("[useGroups] API has data, using as source of truth");
+        await browser.storage.local.set({
+          [STORAGE_KEYS.TAB_GROUPS]: apiGroups,
+          [STORAGE_KEYS.GROUP_ORDER]: apiOrder,
+        });
+        setGroups(apiGroups);
+        setGroupOrder(apiOrder);
+      } else {
+        // API is empty - check if we have local data to push
+        const result = await browser.storage.local.get([
+          STORAGE_KEYS.TAB_GROUPS,
+          STORAGE_KEYS.GROUP_ORDER,
+        ]);
+        const storedGroups = result[STORAGE_KEYS.TAB_GROUPS];
+        const storedOrder = result[STORAGE_KEYS.GROUP_ORDER];
+        const localGroups: TabGroups = isValidTabGroups(storedGroups)
+          ? storedGroups
+          : {};
+        const localOrder: string[] = isValidGroupOrder(storedOrder)
+          ? storedOrder.filter((name) => name in localGroups)
+          : Object.keys(localGroups);
+
+        const hasLocalGroups = Object.keys(localGroups).length > 0;
+
+        if (hasLocalGroups) {
+          // Push local data to API
+          console.log("[useGroups] API empty, pushing local data to API");
+          const tabsPayload = groupsToTabs(localGroups, localOrder);
+          await syncTabs(tabsPayload);
+          // Local data is already in state, no need to update
+        } else {
+          console.log("[useGroups] Both API and local are empty");
+        }
       }
-
-      // No conflict - proceed with merge
-      const mergedGroups = { ...localGroups, ...apiGroups };
-
-      await browser.storage.local.set({ [STORAGE_KEYS.TAB_GROUPS]: mergedGroups });
-      setGroups(mergedGroups);
 
       // Mark as loaded from API - this enables syncing for subsequent changes
       hasLoadedFromApi.current = true;
-
-      // If there are local-only groups, sync them to API
-      if (hasLocalGroups && !hasApiGroups) {
-        const tabsPayload = groupsToTabs(mergedGroups);
-        await syncTabs(tabsPayload);
-      }
-
+      isLoadingFromApi.current = false;
       setSyncStatus("idle");
       setSyncError(null);
+      setIsOffline(false);
     } catch (error) {
+      console.error("[useGroups] loadGroupsFromApiInternal error:", error);
+      isLoadingFromApi.current = false;
+      // Mark as loaded so user can continue working offline
+      hasLoadedFromApi.current = true;
       setSyncStatus("error");
-      setSyncError(error instanceof Error ? error.message : "Sync failed");
-    }
-  }, [isAuthenticated]);
 
-  const resolveConflict = useCallback(
-    async (choice: "discard" | "merge") => {
-      if (!pendingConflict) return;
-
-      const { localGroups, apiGroups } = pendingConflict;
-
-      setSyncStatus("syncing");
-      try {
-        if (choice === "discard") {
-          // Discard local groups, use only API groups
-          await browser.storage.local.set({ [STORAGE_KEYS.TAB_GROUPS]: apiGroups });
-          setGroups(apiGroups);
-        } else {
-          // Merge: local groups first, API takes precedence for same names
-          const mergedGroups = { ...localGroups, ...apiGroups };
-          await browser.storage.local.set({ [STORAGE_KEYS.TAB_GROUPS]: mergedGroups });
-          setGroups(mergedGroups);
-
-          // Sync merged groups to API so local-only groups are backed up
-          const tabsPayload = groupsToTabs(mergedGroups);
-          await syncTabs(tabsPayload);
-        }
-
-        setPendingConflict(null);
-        setSyncStatus("idle");
-        setSyncError(null);
-      } catch (error) {
-        setSyncStatus("error");
+      if (error instanceof NetworkError) {
+        setIsOffline(true);
+        setSyncError("Working offline");
+      } else {
+        setIsOffline(false);
         setSyncError(error instanceof Error ? error.message : "Sync failed");
       }
-    },
-    [pendingConflict]
-  );
+    }
+  };
+
+  // Public wrapper for loadGroupsFromApi (used for manual retry)
+  const loadGroupsFromApi = useCallback(async () => {
+    console.log("[useGroups] loadGroupsFromApi called, isAuthenticated:", isAuthenticated);
+    if (!isAuthenticated) return;
+    if (isLoadingFromApi.current) {
+      console.log("[useGroups] Already loading from API, skipping");
+      return;
+    }
+    isLoadingFromApi.current = true;
+    await loadGroupsFromApiInternal();
+  }, [isAuthenticated]);
 
   const saveGroup = useCallback(
     async (name: string, urls: string[]) => {
       try {
         const updatedGroups = { ...groups, [name]: urls };
-        await browser.storage.local.set({ [STORAGE_KEYS.TAB_GROUPS]: updatedGroups });
+        // Add to order if it's a new group
+        const isNewGroup = !(name in groups);
+        const updatedOrder = isNewGroup ? [...groupOrder, name] : groupOrder;
+
+        await browser.storage.local.set({
+          [STORAGE_KEYS.TAB_GROUPS]: updatedGroups,
+          [STORAGE_KEYS.GROUP_ORDER]: updatedOrder,
+        });
         setGroups(updatedGroups);
+        if (isNewGroup) {
+          setGroupOrder(updatedOrder);
+        }
         setSyncError(null);
       } catch (error) {
         setSyncStatus("error");
@@ -228,7 +272,7 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
         throw error;
       }
     },
-    [groups]
+    [groups, groupOrder]
   );
 
   const deleteGroup = useCallback(
@@ -236,8 +280,14 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
       try {
         const updatedGroups = { ...groups };
         delete updatedGroups[name];
-        await browser.storage.local.set({ [STORAGE_KEYS.TAB_GROUPS]: updatedGroups });
+        const updatedOrder = groupOrder.filter((n) => n !== name);
+
+        await browser.storage.local.set({
+          [STORAGE_KEYS.TAB_GROUPS]: updatedGroups,
+          [STORAGE_KEYS.GROUP_ORDER]: updatedOrder,
+        });
         setGroups(updatedGroups);
+        setGroupOrder(updatedOrder);
 
         if (activeGroupName === name) {
           setActiveGroupNameState(null);
@@ -250,7 +300,7 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
         throw error;
       }
     },
-    [groups, activeGroupName]
+    [groups, groupOrder, activeGroupName]
   );
 
   const setActiveGroupName = useCallback(async (name: string | null) => {
@@ -258,16 +308,42 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
     await browser.storage.local.set({ [STORAGE_KEYS.ACTIVE_GROUP]: name });
   }, []);
 
+  const reorderGroups = useCallback(
+    async (fromIndex: number, toIndex: number) => {
+      if (fromIndex === toIndex) return;
+      if (fromIndex < 0 || fromIndex >= groupOrder.length) return;
+      if (toIndex < 0 || toIndex >= groupOrder.length) return;
+
+      try {
+        const updatedOrder = [...groupOrder];
+        const [removed] = updatedOrder.splice(fromIndex, 1);
+        updatedOrder.splice(toIndex, 0, removed);
+
+        await browser.storage.local.set({
+          [STORAGE_KEYS.GROUP_ORDER]: updatedOrder,
+        });
+        setGroupOrder(updatedOrder);
+        setSyncError(null);
+      } catch (error) {
+        setSyncStatus("error");
+        setSyncError(error instanceof Error ? error.message : "Failed to reorder groups");
+        throw error;
+      }
+    },
+    [groupOrder]
+  );
+
   return {
     groups,
+    groupOrder,
     activeGroupName,
     syncStatus,
     syncError,
-    pendingConflict,
+    isOffline,
     setActiveGroupName,
     saveGroup,
     deleteGroup,
+    reorderGroups,
     loadGroupsFromApi,
-    resolveConflict,
   };
 }

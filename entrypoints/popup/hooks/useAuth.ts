@@ -46,10 +46,12 @@ export function useAuth(): UseAuthReturn {
       changes: { [key: string]: { newValue?: unknown; oldValue?: unknown } },
       areaName: string
     ) => {
+      console.log("[useAuth] Storage change detected:", areaName, Object.keys(changes));
       if (areaName !== "local") return;
 
       // Check if auth token was added
       if (changes[STORAGE_KEYS.AUTH_TOKEN]?.newValue) {
+        console.log("[useAuth] Auth token added, calling checkAuthStatus(true)");
         // Re-check auth status to update the UI
         checkAuthStatus(true);
       }
@@ -62,8 +64,10 @@ export function useAuth(): UseAuthReturn {
   }, []);
 
   const checkAuthStatus = async (justLoggedIn = false) => {
+    console.log("[useAuth] checkAuthStatus called, justLoggedIn:", justLoggedIn);
     try {
       const token = await getAuthToken();
+      console.log("[useAuth] Token present:", !!token);
       if (!token) {
         setState((prev) => ({ ...prev, isLoading: false }));
         return;
