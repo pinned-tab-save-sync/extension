@@ -19,29 +19,30 @@ export function Header({
   onRetry,
 }: HeaderProps) {
   const getSyncIndicator = () => {
-    switch (syncStatus) {
-      case "syncing":
-        return <span className="text-xs text-yellow-500">Syncing...</span>;
-      case "error":
-        return (
-          <div className="flex items-center gap-2">
-            <span
-              className="text-xs text-red-500"
-              title={syncError || "Sync error"}
-            >
-              {isOffline ? "Working offline" : "Sync error"}
-            </span>
-            <button
-              onClick={onRetry}
-              className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
-            >
-              Retry
-            </button>
-          </div>
-        );
-      default:
-        return <span className="text-xs text-green-500">Synced</span>;
+    if (syncStatus === "syncing") {
+      return <span className="text-xs text-yellow-500">Syncing...</span>;
     }
+
+    if (syncStatus === "error" || isOffline) {
+      return (
+        <div className="flex items-center gap-2">
+          <span
+            className="text-xs text-orange-400"
+            title={syncError || "Offline"}
+          >
+            Offline
+          </span>
+          <button
+            onClick={onRetry}
+            className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+
+    return <span className="text-xs text-green-500">Synced</span>;
   };
 
   return (
