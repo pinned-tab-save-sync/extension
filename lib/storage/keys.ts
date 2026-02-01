@@ -4,4 +4,7 @@ export const STORAGE_KEYS = {
   GROUP_ORDER: "groupOrder",
   AUTH_TOKEN: "authToken",
   STORED_USER: "storedUser",
+  THEME: "theme",
 } as const;
+
+export type ThemePreference = "system" | "light" | "dark";

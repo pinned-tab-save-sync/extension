@@ -31,13 +31,13 @@ export function SortableGroupItem({
     <li
       ref={setNodeRef}
       style={style}
-      className={`flex items-center p-3 border-b border-gray-700 gap-2 ${
+      className={`flex items-center p-3 border-b border-gray-200 dark:border-gray-700 gap-2 ${
         isActive ? "bg-indigo-500/10 rounded" : ""
-      } ${isDragging ? "opacity-50 bg-gray-700/50 z-10" : ""}`}
+      } ${isDragging ? "opacity-50 bg-gray-200/50 dark:bg-gray-700/50 z-10" : ""}`}
     >
       <button
         type="button"
-        className="flex-shrink-0 cursor-grab active:cursor-grabbing p-1 text-gray-500 hover:text-gray-300 touch-none"
+        className="flex-shrink-0 cursor-grab active:cursor-grabbing p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 touch-none"
         {...attributes}
         {...listeners}
         aria-label="Drag to reorder"

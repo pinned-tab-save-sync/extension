@@ -1,8 +1,7 @@
-import { getAuthToken, clearAuthToken, clearStoredUser } from "../storage/auth";
+import { clearAuthToken, clearStoredUser, getAuthToken } from "../storage/auth";
 import type { ApiError } from "../types";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
 
 interface RequestOptions extends RequestInit {
   skipAuth?: boolean;
@@ -15,10 +14,7 @@ export class ApiClient {
     this.baseUrl = baseUrl;
   }
 
-  async request<T>(
-    endpoint: string,
-    options: RequestOptions = {}
-  ): Promise<T> {
+  async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { skipAuth = false, ...fetchOptions } = options;
 
     const headers: Record<string, string> = {
@@ -66,11 +62,7 @@ export class ApiClient {
 
     if (!response.ok) {
       const error = data as ApiError;
-      throw new ApiClientError(
-        error.message || "An error occurred",
-        response.status,
-        error.errors
-      );
+      throw new ApiClientError(error.message || "An error occurred", response.status, error.errors);
     }
 
     return data as T;
@@ -80,11 +72,7 @@ export class ApiClient {
     return this.request<T>(endpoint, { ...options, method: "GET" });
   }
 
-  async post<T>(
-    endpoint: string,
-    body?: unknown,
-    options?: RequestOptions
-  ): Promise<T> {
+  async post<T>(endpoint: string, body?: unknown, options?: RequestOptions): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
       method: "POST",
@@ -101,7 +89,7 @@ export class ApiClientError extends Error {
   constructor(
     message: string,
     public status: number,
-    public errors?: Record<string, string[]>
+    public errors?: Record<string, string[]>,
   ) {
     super(message);
     this.name = "ApiClientError";

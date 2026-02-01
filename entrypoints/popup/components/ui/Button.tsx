@@ -14,15 +14,15 @@ const variantClasses: Record<ButtonVariant, string> = {
   primary:
     "bg-indigo-500 text-white border-none hover:bg-indigo-600",
   secondary:
-    "bg-transparent text-indigo-500 border border-indigo-500 hover:bg-indigo-500/10",
+    "bg-transparent text-indigo-600 dark:text-indigo-500 border border-indigo-500 hover:bg-indigo-500/10",
   success:
     "bg-green-500 text-white border-none hover:bg-green-600",
   danger:
     "bg-red-500 text-white border-none hover:bg-red-600",
   outline:
-    "bg-transparent border border-gray-500 hover:border-red-500 hover:text-red-500",
+    "bg-transparent border border-gray-400 dark:border-gray-500 text-gray-700 dark:text-gray-300 hover:border-red-500 hover:text-red-500",
   ghost:
-    "bg-transparent border-none p-0 underline text-indigo-400 hover:text-indigo-300",
+    "bg-transparent border-none p-0 underline text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300",
 };
 
 const sizeClasses = {
