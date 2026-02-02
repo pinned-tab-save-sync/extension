@@ -11,16 +11,7 @@ import { SortableGroupItem } from "./components/SortableGroupItem";
 import { ThemeToggle } from "./components/ThemeToggle";
 
 function App() {
-  const {
-    user,
-    isAuthenticated,
-    isLoading: authLoading,
-    justLoggedIn,
-    openLogin,
-    openRegister,
-    logout,
-    clearJustLoggedIn,
-  } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, justLoggedIn, openLogin, openRegister, logout, clearJustLoggedIn } = useAuth();
 
   const {
     groups,
@@ -85,23 +76,15 @@ function App() {
     setIsLoadingGroup(true);
     try {
       const currentPinned = await browser.tabs.query({ pinned: true });
-      const currentIds = currentPinned
-        .map((tab) => tab.id)
-        .filter((id): id is number => id !== undefined);
+      const currentIds = currentPinned.map((tab) => tab.id).filter((id): id is number => id !== undefined);
 
-      await Promise.all(
-        urls.map((url) =>
-          browser.tabs.create({ url, pinned: true, active: false }),
-        ),
-      );
+      await Promise.all(urls.map((url) => browser.tabs.create({ url, pinned: true, active: false })));
 
       if (currentIds.length > 0) {
         await browser.tabs.remove(currentIds);
       }
     } catch (error) {
-      setWarning(
-        error instanceof Error ? error.message : "Failed to load group",
-      );
+      setWarning(error instanceof Error ? error.message : "Failed to load group");
     } finally {
       setIsLoadingGroup(false);
     }
@@ -145,7 +128,7 @@ function App() {
           <ThemeToggle theme={theme} onThemeChange={setTheme} />
         </div>
 
-      <div className="flex gap-2 mb-6 items-start">
+        <div className="flex gap-2 mb-6 items-start">
           <div className="flex-1 flex flex-col">
             <input
               type="text"
@@ -157,25 +140,21 @@ function App() {
               placeholder="Group name..."
               className="w-full p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white box-border"
             />
-          <div className="min-h-6">
-              {warning && (
-                <p className="text-red-500 text-xs mt-1 text-left">{warning}</p>
-              )}
-            </div>
+            <div className="min-h-6">{warning && <p className="text-red-500 text-xs mt-1 text-left">{warning}</p>}</div>
           </div>
           <Button
-          variant="success"
-          onClick={() => {
-            setWarning(null);
-            saveCurrentPinned(newGroupName);
-          }}
-          className="px-3 py-2"
+            variant="success"
+            onClick={() => {
+              setWarning(null);
+              saveCurrentPinned(newGroupName);
+            }}
+            className="px-3 py-2"
           >
             Save
           </Button>
         </div>
 
-      <div>
+        <div>
           <h2 className="text-lg text-left">Saved Groups</h2>
           {groupOrder.length === 0 ? (
             <p>No saved groups yet.</p>
@@ -185,20 +164,12 @@ function App() {
                 const urls = groups[name];
                 if (!urls) return null;
                 return (
-                  <SortableGroupItem
-                    key={name}
-                    id={name}
-                    isActive={activeGroupName === name}
-                  >
+                  <SortableGroupItem key={name} id={name} isActive={activeGroupName === name}>
                     <div className="flex flex-col items-start flex-1 overflow-hidden">
-                      <span className="font-semibold whitespace-nowrap overflow-hidden text-ellipsis w-full">
-                        {name}
-                      </span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        ({urls.length} tabs)
-                      </span>
+                      <span className="font-semibold whitespace-nowrap overflow-hidden text-ellipsis w-full">{name}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">({urls.length} tabs)</span>
                     </div>
-                  <div className="flex gap-1">
+                    <div className="flex gap-1">
                       {activeGroupName === name && (
                         <Button
                           variant="success"
@@ -208,28 +179,14 @@ function App() {
                           }}
                           disabled={isLoadingGroup}
                         >
-                          Save
+                          Update
                         </Button>
                       )}
-                      <Button
-                        variant="primary"
-                        onClick={() => loadGroup(name)}
-                        disabled={isLoadingGroup}
-                      >
+                      <Button variant="primary" onClick={() => loadGroup(name)} disabled={isLoadingGroup}>
                         Load
                       </Button>
-                      <Button
-                        variant="danger"
-                        onClick={() => handleDeleteGroup(name)}
-                        disabled={isLoadingGroup}
-                        aria-label="Delete"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                          className="w-4 h-4"
-                        >
+                      <Button variant="danger" onClick={() => handleDeleteGroup(name)} disabled={isLoadingGroup} aria-label="Delete">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                           <path
                             fillRule="evenodd"
                             d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z"
@@ -245,15 +202,8 @@ function App() {
           )}
         </div>
 
-      {isAuthenticated && user ? (
-          <Header
-            user={user}
-            onLogout={logout}
-            syncStatus={syncStatus}
-            syncError={syncError}
-            isOffline={isOffline}
-            onRetry={loadGroupsFromApi}
-          />
+        {isAuthenticated && user ? (
+          <Header user={user} onLogout={logout} syncStatus={syncStatus} syncError={syncError} isOffline={isOffline} onRetry={loadGroupsFromApi} />
         ) : (
           <div className="mt-6 pt-4 border-t border-gray-300 dark:border-gray-600 text-center">
             <Button variant="ghost" onClick={() => setShowAuthScreen(true)}>
