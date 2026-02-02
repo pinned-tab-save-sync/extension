@@ -5,7 +5,8 @@ import { useGroups } from "./hooks/useGroups";
 import { useTheme } from "./hooks/useTheme";
 import { AuthScreen } from "./components/AuthScreen";
 import { Header } from "./components/Header";
-import { Button } from "./components/ui/Button";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { SortableGroupList } from "./components/SortableGroupList";
 import { SortableGroupItem } from "./components/SortableGroupItem";
 import { ThemeToggle } from "./components/ThemeToggle";
@@ -130,7 +131,7 @@ function App() {
 
         <div className="flex gap-2 mb-6 items-start">
           <div className="flex-1 flex flex-col">
-            <input
+            <Input
               type="text"
               value={newGroupName}
               onChange={(e) => {
@@ -138,7 +139,6 @@ function App() {
                 setWarning(null);
               }}
               placeholder="Group name..."
-              className="w-full p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white box-border"
             />
             <div className="min-h-6">{warning && <p className="text-red-500 text-xs mt-1 text-left">{warning}</p>}</div>
           </div>
@@ -148,7 +148,6 @@ function App() {
               setWarning(null);
               saveCurrentPinned(newGroupName);
             }}
-            className="px-3 py-2"
           >
             Save
           </Button>
@@ -183,10 +182,10 @@ function App() {
                           Update
                         </Button>
                       )}
-                      <Button variant="primary" size="lg" onClick={() => loadGroup(name)} disabled={isLoadingGroup}>
+                      <Button variant="default" size="lg" onClick={() => loadGroup(name)} disabled={isLoadingGroup}>
                         Load
                       </Button>
-                      <Button variant="danger" size="lg" onClick={() => handleDeleteGroup(name)} disabled={isLoadingGroup} aria-label="Delete">
+                      <Button variant="destructive" size="lg" onClick={() => handleDeleteGroup(name)} disabled={isLoadingGroup} aria-label="Delete">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                           <path
                             fillRule="evenodd"

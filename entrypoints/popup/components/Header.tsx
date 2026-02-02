@@ -1,5 +1,5 @@
 import type { User, SyncStatus } from "@/lib/types";
-import { Button } from "./ui/Button";
+import { Button } from "@/components/ui/button";
 
 interface HeaderProps {
   user: User;
