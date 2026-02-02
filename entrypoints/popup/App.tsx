@@ -173,6 +173,7 @@ function App() {
                       {activeGroupName === name && (
                         <Button
                           variant="success"
+                          size="lg"
                           onClick={() => {
                             setWarning(null);
                             saveCurrentPinned(name);
@@ -182,10 +183,10 @@ function App() {
                           Update
                         </Button>
                       )}
-                      <Button variant="primary" onClick={() => loadGroup(name)} disabled={isLoadingGroup}>
+                      <Button variant="primary" size="lg" onClick={() => loadGroup(name)} disabled={isLoadingGroup}>
                         Load
                       </Button>
-                      <Button variant="danger" onClick={() => handleDeleteGroup(name)} disabled={isLoadingGroup} aria-label="Delete">
+                      <Button variant="danger" size="lg" onClick={() => handleDeleteGroup(name)} disabled={isLoadingGroup} aria-label="Delete">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                           <path
                             fillRule="evenodd"
