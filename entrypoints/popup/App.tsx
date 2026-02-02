@@ -78,6 +78,10 @@ function App() {
     const urls = groups[name];
     if (!urls || urls.length === 0) return;
 
+    // Set active group name FIRST, before any tab operations
+    // This ensures the value is persisted even if the popup closes during tab manipulation
+    await setActiveGroupName(name);
+
     setIsLoadingGroup(true);
     try {
       const currentPinned = await browser.tabs.query({ pinned: true });
@@ -94,8 +98,6 @@ function App() {
       if (currentIds.length > 0) {
         await browser.tabs.remove(currentIds);
       }
-
-      await setActiveGroupName(name);
     } catch (error) {
       setWarning(
         error instanceof Error ? error.message : "Failed to load group",
