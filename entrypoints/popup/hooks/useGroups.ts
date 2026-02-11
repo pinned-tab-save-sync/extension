@@ -53,10 +53,15 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
   const hasLoadedFromApi = useRef(false);
   // Tracks if we're currently loading from API (to prevent duplicate calls)
   const isLoadingFromApi = useRef(false);
+  // Current browser window ID for per-window active group tracking
+  const windowIdRef = useRef<number | null>(null);
 
-  // Load groups from local storage on mount
+  // Load groups from local storage on mount (after resolving window ID)
   useEffect(() => {
-    loadFromLocalStorage();
+    browser.windows.getCurrent().then((win) => {
+      windowIdRef.current = win.id ?? null;
+      loadFromLocalStorage();
+    });
   }, []);
 
   // Clear groups state when user logs out
@@ -136,11 +141,11 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
   const loadFromLocalStorage = async () => {
     const result = await browser.storage.local.get([
       STORAGE_KEYS.TAB_GROUPS,
-      STORAGE_KEYS.ACTIVE_GROUP,
+      STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW,
       STORAGE_KEYS.GROUP_ORDER,
     ]);
     const storedGroups = result[STORAGE_KEYS.TAB_GROUPS];
-    const storedActiveGroup = result[STORAGE_KEYS.ACTIVE_GROUP];
+    const storedActiveByWindow = result[STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW];
     const storedOrder = result[STORAGE_KEYS.GROUP_ORDER];
 
     if (isValidTabGroups(storedGroups)) {
@@ -158,9 +163,16 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
         setGroupOrder(Object.keys(storedGroups));
       }
     }
-    if (typeof storedActiveGroup === "string") {
-      setActiveGroupNameState(storedActiveGroup);
+
+    // Load active group for this specific window
+    const winId = windowIdRef.current;
+    if (winId != null && storedActiveByWindow && typeof storedActiveByWindow === "object") {
+      const activeForWindow = (storedActiveByWindow as Record<string, string>)[String(winId)];
+      if (typeof activeForWindow === "string") {
+        setActiveGroupNameState(activeForWindow);
+      }
     }
+
     isInitialized.current = true;
   };
 
@@ -291,7 +303,14 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
 
         if (activeGroupName === name) {
           setActiveGroupNameState(null);
-          await browser.storage.local.set({ [STORAGE_KEYS.ACTIVE_GROUP]: null });
+          const winId = windowIdRef.current;
+          if (winId != null) {
+            const result = await browser.storage.local.get(STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW);
+            const current = (result[STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW] as Record<string, string | null> | undefined) ?? {};
+            await browser.storage.local.set({
+              [STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW]: { ...current, [String(winId)]: null },
+            });
+          }
         }
         setSyncError(null);
       } catch (error) {
@@ -305,7 +324,14 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
 
   const setActiveGroupName = useCallback(async (name: string | null) => {
     setActiveGroupNameState(name);
-    await browser.storage.local.set({ [STORAGE_KEYS.ACTIVE_GROUP]: name });
+    const winId = windowIdRef.current;
+    if (winId == null) return;
+
+    const result = await browser.storage.local.get(STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW);
+    const current = (result[STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW] as Record<string, string | null> | undefined) ?? {};
+    await browser.storage.local.set({
+      [STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW]: { ...current, [String(winId)]: name },
+    });
   }, []);
 
   const reorderGroups = useCallback(

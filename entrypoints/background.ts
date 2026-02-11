@@ -1,4 +1,5 @@
 import { setAuthToken, setStoredUser } from "@/lib/storage/auth";
+import { STORAGE_KEYS } from "@/lib/storage/keys";
 import type { User } from "@/lib/types";
 
 const AUTH_URL_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1):8000\/auth\/extension\/verified/;
@@ -11,6 +12,14 @@ interface AuthTokenMessage {
 
 export default defineBackground(() => {
   console.log("[Background] Service worker started");
+
+  // Prune stale window IDs from active group tracking on startup
+  pruneStaleWindowEntries();
+
+  // Clean up when a window is closed
+  browser.windows.onRemoved.addListener((windowId) => {
+    removeWindowActiveGroup(windowId);
+  });
 
   // Listen for auth token messages from injected scripts
   browser.runtime.onMessage.addListener(
@@ -78,6 +87,41 @@ async function injectAuthScript(tabId: number): Promise<void> {
     console.log("[Background] Auth script injected successfully");
   } catch (error) {
     console.error("[Background] Failed to inject auth script:", error);
+  }
+}
+
+async function pruneStaleWindowEntries(): Promise<void> {
+  try {
+    const result = await browser.storage.local.get(STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW);
+    const activeByWindow = result[STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW] as Record<string, string | null> | undefined;
+    if (!activeByWindow) return;
+
+    const allWindows = await browser.windows.getAll();
+    const openWindowIds = new Set(allWindows.map((w) => String(w.id)));
+    const pruned: Record<string, string | null> = {};
+
+    for (const [winId, groupName] of Object.entries(activeByWindow)) {
+      if (openWindowIds.has(winId)) {
+        pruned[winId] = groupName;
+      }
+    }
+
+    await browser.storage.local.set({ [STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW]: pruned });
+  } catch (error) {
+    console.error("[Background] Failed to prune stale window entries:", error);
+  }
+}
+
+async function removeWindowActiveGroup(windowId: number): Promise<void> {
+  try {
+    const result = await browser.storage.local.get(STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW);
+    const activeByWindow = result[STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW] as Record<string, string | null> | undefined;
+    if (!activeByWindow) return;
+
+    const { [String(windowId)]: _, ...remaining } = activeByWindow;
+    await browser.storage.local.set({ [STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW]: remaining });
+  } catch (error) {
+    console.error("[Background] Failed to remove window active group:", error);
   }
 }
 

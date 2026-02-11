@@ -53,7 +53,7 @@ function App() {
       return;
     }
 
-    const pinnedTabs = await browser.tabs.query({ pinned: true });
+    const pinnedTabs = await browser.tabs.query({ pinned: true, currentWindow: true });
     if (pinnedTabs.length === 0) {
       setWarning("Please add some pinned tabs before saving");
       return;
@@ -76,10 +76,11 @@ function App() {
 
     setIsLoadingGroup(true);
     try {
-      const currentPinned = await browser.tabs.query({ pinned: true });
+      const currentWindow = await browser.windows.getCurrent();
+      const currentPinned = await browser.tabs.query({ pinned: true, windowId: currentWindow.id });
       const currentIds = currentPinned.map((tab) => tab.id).filter((id): id is number => id !== undefined);
 
-      await Promise.all(urls.map((url) => browser.tabs.create({ url, pinned: true, active: false })));
+      await Promise.all(urls.map((url) => browser.tabs.create({ url, pinned: true, active: false, windowId: currentWindow.id })));
 
       if (currentIds.length > 0) {
         await browser.tabs.remove(currentIds);
@@ -182,7 +183,7 @@ function App() {
                           Update
                         </Button>
                       )}
-                      <Button variant="default" size="lg" onClick={() => loadGroup(name)} disabled={isLoadingGroup}>
+                      <Button variant="secondary" size="lg" onClick={() => loadGroup(name)} disabled={isLoadingGroup}>
                         Load
                       </Button>
                       <Button variant="destructive" size="lg" onClick={() => handleDeleteGroup(name)} disabled={isLoadingGroup} aria-label="Delete">
