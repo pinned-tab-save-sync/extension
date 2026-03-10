@@ -8,19 +8,8 @@ interface SortableGroupItemProps {
   children: ReactNode;
 }
 
-export function SortableGroupItem({
-  id,
-  isActive,
-  children,
-}: SortableGroupItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
+export function SortableGroupItem({ id, isActive, children }: SortableGroupItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -31,7 +20,7 @@ export function SortableGroupItem({
     <li
       ref={setNodeRef}
       style={style}
-      className={`flex items-center p-3 border-b border-gray-200 dark:border-gray-700 gap-2 ${
+      className={`flex items-center p-3 border-b last:border-b-0 border-gray-200 dark:border-gray-700 gap-2 ${
         isActive ? "bg-indigo-500/10 rounded" : ""
       } ${isDragging ? "opacity-50 bg-gray-200/50 dark:bg-gray-700/50 z-10" : ""}`}
     >
@@ -51,13 +40,7 @@ export function SortableGroupItem({
 
 function GripIcon() {
   return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="currentColor"
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
       <circle cx="5" cy="3" r="1.5" />
       <circle cx="11" cy="3" r="1.5" />
       <circle cx="5" cy="8" r="1.5" />

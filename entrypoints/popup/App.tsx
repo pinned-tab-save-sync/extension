@@ -4,7 +4,7 @@ import { useAuth } from "./hooks/useAuth";
 import { useGroups } from "./hooks/useGroups";
 import { useTheme } from "./hooks/useTheme";
 import { AuthScreen } from "./components/AuthScreen";
-import { Header } from "./components/Header";
+import { Footer } from "./components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SortableGroupList } from "./components/SortableGroupList";
@@ -124,13 +124,13 @@ function App() {
 
   return (
     <div className={isDark ? "dark" : ""}>
-      <div className="min-w-[550px] min-h-[200px] p-4 font-sans text-gray-900 dark:text-white/85 bg-white dark:bg-[#242424]">
-        <div className="flex justify-between items-center mb-6">
+      <div className="min-w-[550px] min-h-[200px] font-sans text-gray-900 dark:text-white/85 bg-white dark:bg-[#242424]">
+        <div className="px-4 pt-4 flex justify-between items-center mb-6">
           <h1 className="text-2xl leading-none">Pinned Tab Save & Sync</h1>
           <ThemeToggle theme={theme} onThemeChange={setTheme} />
         </div>
 
-        <div className="flex gap-2 mb-6 items-start">
+        <div className="px-4 flex gap-2 mb-2 items-start">
           <div className="flex-1 flex flex-col">
             <Input
               type="text"
@@ -155,9 +155,9 @@ function App() {
         </div>
 
         <div>
-          <h2 className="text-lg text-left">Saved Groups</h2>
+          <h2 className="px-4 text-lg text-left">Saved Groups</h2>
           {groupOrder.length === 0 ? (
-            <p>No saved groups yet.</p>
+            <p className="px-4">No saved groups yet.</p>
           ) : (
             <SortableGroupList groupOrder={groupOrder} onReorder={reorderGroups}>
               {groupOrder.map((name) => {
@@ -203,15 +203,16 @@ function App() {
           )}
         </div>
 
-        {isAuthenticated && user ? (
-          <Header user={user} onLogout={logout} syncStatus={syncStatus} syncError={syncError} isOffline={isOffline} onRetry={loadGroupsFromApi} />
-        ) : (
-          <div className="mt-6 pt-4 border-t border-gray-300 dark:border-gray-600 text-center">
-            <Button variant="ghost" onClick={() => setShowAuthScreen(true)}>
-              Sign up to sync across browsers
-            </Button>
-          </div>
-        )}
+        <Footer
+          user={user}
+          isAuthenticated={isAuthenticated}
+          onLogout={logout}
+          onSignUp={() => setShowAuthScreen(true)}
+          syncStatus={syncStatus}
+          syncError={syncError}
+          isOffline={isOffline}
+          onRetry={loadGroupsFromApi}
+        />
       </div>
     </div>
   );
