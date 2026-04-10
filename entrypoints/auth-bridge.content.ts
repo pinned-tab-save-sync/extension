@@ -2,7 +2,6 @@ export default defineContentScript({
   matches: [
     "http://localhost:8000/auth/extension/*",
     "http://127.0.0.1:8000/auth/extension/*",
-    "https://pinnedtabsaveandsync.mou.me/auth/extension/*",
     "https://pinnedtabsaveandsync.com/auth/extension/*",
   ],
   runAt: "document_start",

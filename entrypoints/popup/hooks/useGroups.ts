@@ -3,12 +3,7 @@ import type { TabGroups, SyncStatus } from "@/lib/types";
 import { STORAGE_KEYS } from "@/lib/storage/keys";
 import { fetchTabs, syncTabs } from "@/lib/api/tabs";
 import { NetworkError } from "@/lib/api/client";
-import {
-  tabsToGroups,
-  groupsToTabs,
-  debouncedSync,
-  cancelPendingSync,
-} from "@/lib/sync";
+import { tabsToGroups, groupsToTabs, debouncedSync, cancelPendingSync } from "@/lib/sync";
 
 function isValidTabGroups(value: unknown): value is TabGroups {
   if (!value || typeof value !== "object") return false;
@@ -41,9 +36,7 @@ interface UseGroupsReturn {
 export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
   const [groups, setGroups] = useState<TabGroups>({});
   const [groupOrder, setGroupOrder] = useState<string[]>([]);
-  const [activeGroupName, setActiveGroupNameState] = useState<string | null>(
-    null
-  );
+  const [activeGroupName, setActiveGroupNameState] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("idle");
   const [syncError, setSyncError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
@@ -132,18 +125,14 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
           setIsOffline(false);
           setSyncError(error.message);
         }
-      }
+      },
     );
 
     return () => cancelPendingSync();
   }, [groups, groupOrder, isAuthenticated]);
 
   const loadFromLocalStorage = async () => {
-    const result = await browser.storage.local.get([
-      STORAGE_KEYS.TAB_GROUPS,
-      STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW,
-      STORAGE_KEYS.GROUP_ORDER,
-    ]);
+    const result = await browser.storage.local.get([STORAGE_KEYS.TAB_GROUPS, STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW, STORAGE_KEYS.GROUP_ORDER]);
     const storedGroups = result[STORAGE_KEYS.TAB_GROUPS];
     const storedActiveByWindow = result[STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW];
     const storedOrder = result[STORAGE_KEYS.GROUP_ORDER];
@@ -155,9 +144,7 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
         // Filter out any names that no longer exist in groups
         const validOrder = storedOrder.filter((name) => name in storedGroups);
         // Add any groups that aren't in the order
-        const missingGroups = Object.keys(storedGroups).filter(
-          (name) => !validOrder.includes(name)
-        );
+        const missingGroups = Object.keys(storedGroups).filter((name) => !validOrder.includes(name));
         setGroupOrder([...validOrder, ...missingGroups]);
       } else {
         setGroupOrder(Object.keys(storedGroups));
@@ -200,18 +187,11 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
         setGroupOrder(apiOrder);
       } else {
         // API is empty - check if we have local data to push
-        const result = await browser.storage.local.get([
-          STORAGE_KEYS.TAB_GROUPS,
-          STORAGE_KEYS.GROUP_ORDER,
-        ]);
+        const result = await browser.storage.local.get([STORAGE_KEYS.TAB_GROUPS, STORAGE_KEYS.GROUP_ORDER]);
         const storedGroups = result[STORAGE_KEYS.TAB_GROUPS];
         const storedOrder = result[STORAGE_KEYS.GROUP_ORDER];
-        const localGroups: TabGroups = isValidTabGroups(storedGroups)
-          ? storedGroups
-          : {};
-        const localOrder: string[] = isValidGroupOrder(storedOrder)
-          ? storedOrder.filter((name) => name in localGroups)
-          : Object.keys(localGroups);
+        const localGroups: TabGroups = isValidTabGroups(storedGroups) ? storedGroups : {};
+        const localOrder: string[] = isValidGroupOrder(storedOrder) ? storedOrder.filter((name) => name in localGroups) : Object.keys(localGroups);
 
         const hasLocalGroups = Object.keys(localGroups).length > 0;
 
@@ -284,7 +264,7 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
         throw error;
       }
     },
-    [groups, groupOrder]
+    [groups, groupOrder],
   );
 
   const deleteGroup = useCallback(
@@ -319,7 +299,7 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
         throw error;
       }
     },
-    [groups, groupOrder, activeGroupName]
+    [groups, groupOrder, activeGroupName],
   );
 
   const setActiveGroupName = useCallback(async (name: string | null) => {
@@ -329,9 +309,13 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
 
     const result = await browser.storage.local.get(STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW);
     const current = (result[STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW] as Record<string, string | null> | undefined) ?? {};
-    await browser.storage.local.set({
+    const updates: Record<string, unknown> = {
       [STORAGE_KEYS.ACTIVE_GROUPS_BY_WINDOW]: { ...current, [String(winId)]: name },
-    });
+    };
+    if (name !== null) {
+      updates[STORAGE_KEYS.STARTUP_GROUP] = name;
+    }
+    await browser.storage.local.set(updates);
   }, []);
 
   const reorderGroups = useCallback(
@@ -356,7 +340,7 @@ export function useGroups(isAuthenticated: boolean): UseGroupsReturn {
         throw error;
       }
     },
-    [groupOrder]
+    [groupOrder],
   );
 
   return {

@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   AUTH_TOKEN: "authToken",
   STORED_USER: "storedUser",
   THEME: "theme",
+  STARTUP_GROUP: "startupGroup",
 } as const;
 
 export type ThemePreference = "system" | "light" | "dark";

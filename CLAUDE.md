@@ -30,7 +30,7 @@ WXT organizes extension code by entry points:
   - `App.tsx` - Main component with all current functionality
   - `main.tsx` - React DOM initialization
   - `index.html` - HTML template
-- **`background.ts`** - Background service worker (placeholder)
+- **`background.ts`** - Background service worker. Handles auth token injection, window cleanup, and startup restoration of the last-used tab group via `runtime.onStartup`.
 - **`content.ts`** - Content script injected into pages (placeholder)
 
 ### Extension Configuration (`wxt.config.ts`)
@@ -46,9 +46,17 @@ Tab groups are stored in `browser.storage.local`:
 type TabGroups = { [groupName: string]: string[] }  // name -> array of URLs
 ```
 
-Two storage keys:
+Storage keys (see `lib/storage/keys.ts`):
 - `tabGroups` - All saved tab groups
-- `activeGroupName` - Currently loaded group name
+- `groupOrder` - Ordered array of group names for display
+- `activeGroupsByWindow` - Map of `windowId -> groupName` tracking which group is loaded per window
+- `startupGroup` - The last group loaded in any window; restored on browser launch via `runtime.onStartup`
+- `authToken` / `storedUser` - Auth credentials
+- `theme` - UI theme preference
+
+### Startup Behaviour
+
+On browser launch, `background.ts` reads `startupGroup` and restores that group's tabs in the focused window, removing any pinned tabs Chrome may have session-restored across multiple windows. This prevents tab sprawl after hard shutdowns. The `startupGroup` value is updated automatically whenever any group is loaded.
 
 ## Browser API Usage
 
@@ -57,6 +65,8 @@ Uses the WebExtension API via the `browser` global (WXT polyfills this for cross
 - `browser.tabs.create({ url, pinned: true })` - Create pinned tab
 - `browser.tabs.remove(tabId)` - Remove tab
 - `browser.storage.local.get/set()` - Persist data
+- `browser.windows.getAll/getCurrent()` - Multi-window support
+- `browser.runtime.onStartup` - Fires once per browser launch (not on service worker restarts)
 
 ## Path Aliases
 

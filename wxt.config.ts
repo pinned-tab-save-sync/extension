@@ -11,8 +11,10 @@ export default defineConfig({
     host_permissions: [
       "http://localhost:8000/*",
       "http://127.0.0.1:8000/*",
-      "https://pinnedtabsaveandsync.mou.me/*",
+      "http://localhost:8001/*",
+      "http://127.0.0.1:8001/*",
       "https://pinnedtabsaveandsync.com/*",
+      "https://api.pinnedtabsaveandsync.com/*",
     ],
   },
   vite: () => ({

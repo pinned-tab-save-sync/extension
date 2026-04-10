@@ -1,17 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import type { User } from "@/lib/types";
 import { STORAGE_KEYS } from "@/lib/storage/keys";
-import {
-  getAuthToken,
-  clearAuthToken,
-  getStoredUser,
-  setStoredUser,
-  clearStoredUser,
-} from "@/lib/storage/auth";
+import { getAuthToken, clearAuthToken, getStoredUser, setStoredUser, clearStoredUser } from "@/lib/storage/auth";
 import { logout as apiLogout, getCurrentUser } from "@/lib/api/auth";
 
-// API base URL for auth pages (web routes, not API routes)
-const API_WEB_URL = import.meta.env.VITE_API_URL?.replace("/api/v1", "") || "http://localhost:8000";
+// Auth server URL for auth pages (website, not API)
+const AUTH_URL = (import.meta.env.VITE_AUTH_URL || "http://localhost:8000").replace(/\/$/, "");
 
 interface AuthState {
   user: User | null;
@@ -42,10 +36,7 @@ export function useAuth(): UseAuthReturn {
 
   // Listen for storage changes (when auth completes via content script)
   useEffect(() => {
-    const handleStorageChange = (
-      changes: { [key: string]: { newValue?: unknown; oldValue?: unknown } },
-      areaName: string
-    ) => {
+    const handleStorageChange = (changes: { [key: string]: { newValue?: unknown; oldValue?: unknown } }, areaName: string) => {
       console.log("[useAuth] Storage change detected:", areaName, Object.keys(changes));
       if (areaName !== "local") return;
 
@@ -106,14 +97,14 @@ export function useAuth(): UseAuthReturn {
 
   const openLogin = useCallback(() => {
     browser.tabs.create({
-      url: `${API_WEB_URL}/auth/extension/login`,
+      url: `${AUTH_URL}/auth/extension/login`,
       active: true,
     });
   }, []);
 
   const openRegister = useCallback(() => {
     browser.tabs.create({
-      url: `${API_WEB_URL}/auth/extension/register`,
+      url: `${AUTH_URL}/auth/extension/register`,
       active: true,
     });
   }, []);
@@ -138,7 +129,7 @@ export function useAuth(): UseAuthReturn {
       // Open the web logout page to clear the web session
       // This prevents auto-login when clicking login again
       browser.tabs.create({
-        url: `${API_WEB_URL}/auth/extension/logout`,
+        url: `${AUTH_URL}/auth/extension/logout`,
         active: false,
       });
     }
