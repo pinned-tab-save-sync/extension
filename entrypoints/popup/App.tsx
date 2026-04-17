@@ -125,7 +125,7 @@ function App() {
   return (
     <div className={isDark ? "dark" : ""}>
       <div className="min-w-[550px] min-h-[200px] font-sans text-gray-900 dark:text-white/85 bg-white dark:bg-[#242424]">
-        <div className="px-4 pt-4 flex justify-between items-center mb-6">
+        <div className="px-4 pt-4 flex justify-between items-center mb-4">
           <h1 className="text-2xl leading-none">Pinned Tab Save & Sync</h1>
           <ThemeToggle theme={theme} onThemeChange={setTheme} />
         </div>
@@ -155,7 +155,7 @@ function App() {
         </div>
 
         <div>
-          <h2 className="px-4 text-lg text-left">Saved Groups</h2>
+          <h2 className="px-4 mb-2 text-base text-left">Saved Groups</h2>
           {groupOrder.length === 0 ? (
             <p className="px-4">No saved groups yet.</p>
           ) : (
@@ -165,15 +165,14 @@ function App() {
                 if (!urls) return null;
                 return (
                   <SortableGroupItem key={name} id={name} isActive={activeGroupName === name}>
-                    <div className="flex flex-col items-start flex-1 overflow-hidden">
-                      <span className="font-semibold whitespace-nowrap overflow-hidden text-ellipsis w-full">{name}</span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">({urls.length} tabs)</span>
+                    <div className="items-start flex-1 overflow-hidden">
+                      <span className="text-base font-semibold whitespace-nowrap overflow-hidden text-ellipsis w-full">{name}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">({urls.length})</span>
                     </div>
                     <div className="flex gap-1">
                       {activeGroupName === name && (
                         <Button
                           variant="success"
-                          size="lg"
                           onClick={() => {
                             setWarning(null);
                             saveCurrentPinned(name);
@@ -183,10 +182,10 @@ function App() {
                           Update
                         </Button>
                       )}
-                      <Button variant="secondary" size="lg" onClick={() => loadGroup(name)} disabled={isLoadingGroup}>
+                      <Button variant="secondary" onClick={() => loadGroup(name)} disabled={isLoadingGroup}>
                         Load
                       </Button>
-                      <Button variant="destructive" size="lg" onClick={() => handleDeleteGroup(name)} disabled={isLoadingGroup} aria-label="Delete">
+                      <Button variant="destructive" onClick={() => handleDeleteGroup(name)} disabled={isLoadingGroup} aria-label="Delete">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                           <path
                             fillRule="evenodd"

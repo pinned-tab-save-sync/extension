@@ -20,7 +20,7 @@ export function SortableGroupItem({ id, isActive, children }: SortableGroupItemP
     <li
       ref={setNodeRef}
       style={style}
-      className={`flex items-center p-3 border-b last:border-b-0 border-gray-200 dark:border-gray-700 gap-2 ${
+      className={`flex items-center p-2 border-b last:border-b-0 border-gray-200 dark:border-gray-700 gap-2 ${
         isActive ? "bg-indigo-500/10 rounded" : ""
       } ${isDragging ? "opacity-50 bg-gray-200/50 dark:bg-gray-700/50 z-10" : ""}`}
     >

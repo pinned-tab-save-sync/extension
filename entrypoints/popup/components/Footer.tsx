@@ -45,7 +45,7 @@ export function Footer({ user, isAuthenticated, onLogout, onSignUp, syncStatus, 
   }
 
   return (
-    <footer className="pt-2 pb-3 px-4 flex justify-between items-center pt-3 mt-3 border-t border-gray-300 dark:border-gray-600">
+    <footer className="pt-2 pb-3 px-4 flex justify-between items-center border-t border-gray-300 dark:border-gray-600">
       <div className="flex flex-col gap-1 overflow-hidden">
         <span className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]" title={user.email}>
           {user.email}
