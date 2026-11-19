@@ -1,0 +1,162 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Enable selector-based dark mode (uses .dark class instead of prefers-color-scheme) */
+@variant dark (&:where(.dark, .dark *));
+
+/* Compact layout (Settings > Layout), set as data-density="compact" on <html> by useDensity */
+@custom-variant compact (&:where([data-density="compact"], [data-density="compact"] *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 2px);
+  --radius-2xl: calc(var(--radius) + 6px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-hover: var(--destructive-hover);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  /* The group loaded in this window, and the "In this window" badge */
+  --color-selected: var(--selected);
+  --color-selected-border: var(--selected-border);
+  --color-badge: var(--badge);
+  --color-badge-foreground: var(--badge-foreground);
+  /* Circle behind tab favicons, a step off the background so icons with transparent edges do not float */
+  --color-tab-icon: var(--tab-icon);
+  --color-tab-icon-border: var(--tab-icon-border);
+  /* Soft status tints: sync pill, notices, inline confirmations */
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-foreground: var(--success-soft-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-border: var(--warning-soft-border);
+  --color-warning-soft-foreground: var(--warning-soft-foreground);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-border: var(--danger-soft-border);
+  --color-danger-soft-foreground: var(--danger-soft-foreground);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #ffffff;
+  --foreground: #101828;
+  --card: #ffffff;
+  --card-foreground: #101828;
+  --popover: #ffffff;
+  --popover-foreground: #101828;
+  --primary: #0b6bd6;
+  --primary-hover: #0958b3;
+  --primary-foreground: #ffffff;
+  --secondary: #f2f4f7;
+  --secondary-foreground: #101828;
+  --muted: #f6f7f9;
+  --muted-foreground: #556070;
+  --faint: #98a2b3;
+  --accent: #f2f4f7;
+  --accent-foreground: #101828;
+  --destructive: #b42318;
+  --destructive-hover: #912018;
+  --border: #e4e7ec;
+  --input: #d0d5dd;
+  --ring: #0b6bd6;
+  --selected: #eef4ff;
+  --selected-border: #c7dafc;
+  --badge: #dbe8fd;
+  --badge-foreground: #0b4fa8;
+  --tab-icon: #f2f4f7;
+  --tab-icon-border: #e4e7ec;
+  --success-soft: #e7f6ec;
+  --success-soft-foreground: #067647;
+  --warning-soft: #fef3e2;
+  --warning-soft-border: #fedf89;
+  --warning-soft-foreground: #93370d;
+  --danger-soft: #fef3f2;
+  --danger-soft-border: #fecdca;
+  --danger-soft-foreground: #912018;
+  --scrollbar-thumb: #c4cad4;
+  color-scheme: light;
+}
+
+.dark {
+  --background: #16181d;
+  --foreground: #eef0f3;
+  --card: #1e2128;
+  --card-foreground: #eef0f3;
+  --popover: #1e2128;
+  --popover-foreground: #eef0f3;
+  --primary: #1f6fd8;
+  --primary-hover: #2f7fe6;
+  --primary-foreground: #ffffff;
+  --secondary: #252932;
+  --secondary-foreground: #eef0f3;
+  --muted: #1e2128;
+  --muted-foreground: #a3abb8;
+  --faint: #6b7380;
+  --accent: #252932;
+  --accent-foreground: #eef0f3;
+  --destructive: #d92d20;
+  --destructive-hover: #e5483c;
+  --border: #2b2f38;
+  --input: #3a3f4a;
+  --ring: #4c8ff0;
+  --selected: #1a2638;
+  --selected-border: #2a4570;
+  --badge: #23395c;
+  --badge-foreground: #b3cff8;
+  --tab-icon: #2b2f38;
+  --tab-icon-border: #464c58;
+  --success-soft: #173325;
+  --success-soft-foreground: #6ad79a;
+  --warning-soft: #33260f;
+  --warning-soft-border: #6b4a14;
+  --warning-soft-foreground: #f7c56b;
+  --danger-soft: #36161a;
+  --danger-soft-border: #6e2a24;
+  --danger-soft-foreground: #fda29b;
+  --scrollbar-thumb: #4a505c;
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    /* Thin, theme-coloured scrollbars (the group list, settings and conflict screens) */
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /*
+   * Give the popup document a fixed width. Chrome 152+ momentarily resizes extension action
+   * popups to their max-content size on layout-affecting DOM mutations (Chromium issue
+   * 555294645); an explicit width with hidden horizontal overflow keeps that recomputed size
+   * identical so drags in the group list are not cancelled by the resulting resize events.
+   */
+  html,
+  body {
+    width: 480px;
+    overflow-x: hidden;
+  }
+}
