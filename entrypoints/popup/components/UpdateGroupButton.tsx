@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Hint } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 /** The save is a near-instant storage write, so the spinner shows for at least this long to be seen */
@@ -56,39 +57,40 @@ export function UpdateGroupButton({ name, className, disabled, onUpdate }: Updat
   const isIconShown = isSaving || feedback === "saved";
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      onClick={handleClick}
-      disabled={disabled}
-      aria-busy={isSaving}
-      className={cn(
-        // Wrapping the icon keeps the Button's icon padding rule from shrinking the idle button
-        "gap-0",
-        feedback === "saved" &&
-          "border-success-soft-foreground/40 bg-success-soft text-success-soft-foreground hover:bg-success-soft hover:text-success-soft-foreground",
-        feedback === "fading" && "duration-700",
-        className,
-      )}
-      aria-label={`Update ${name} with this window's tabs`}
-      title="Update group with this window's tabs"
-    >
-      {/* Grows in from nothing and collapses again, so the button widens and narrows smoothly rather than jumping */}
-      <span
-        aria-hidden="true"
+    <Hint label="Update group with this window's tabs">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleClick}
+        disabled={disabled}
+        aria-busy={isSaving}
         className={cn(
-          "inline-flex overflow-hidden transition-[width,margin,opacity] duration-200 motion-reduce:transition-none",
-          isIconShown ? "mr-1.5 w-4 opacity-100" : "mr-0 w-0 opacity-0",
+          // Wrapping the icon keeps the Button's icon padding rule from shrinking the idle button
+          "gap-0",
+          feedback === "saved" &&
+            "border-success-soft-foreground/40 bg-success-soft text-success-soft-foreground hover:bg-success-soft hover:text-success-soft-foreground",
+          feedback === "fading" && "duration-700",
+          className,
         )}
+        aria-label={`Update ${name} with this window's tabs`}
       >
-        {isSaving ? (
-          <LoaderCircle className="motion-safe:animate-spin" />
-        ) : (
-          <Check className="motion-safe:animate-in motion-safe:duration-200 motion-safe:fade-in motion-safe:zoom-in-50" />
-        )}
-      </span>
-      Update
-    </Button>
+        {/* Grows in from nothing and collapses again, so the button widens and narrows smoothly rather than jumping */}
+        <span
+          aria-hidden="true"
+          className={cn(
+            "inline-flex overflow-hidden transition-[width,margin,opacity] duration-200 motion-reduce:transition-none",
+            isIconShown ? "mr-1.5 w-4 opacity-100" : "mr-0 w-0 opacity-0",
+          )}
+        >
+          {isSaving ? (
+            <LoaderCircle className="motion-safe:animate-spin" />
+          ) : (
+            <Check className="motion-safe:animate-in motion-safe:duration-200 motion-safe:fade-in motion-safe:zoom-in-50" />
+          )}
+        </span>
+        Update
+      </Button>
+    </Hint>
   );
 }

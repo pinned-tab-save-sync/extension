@@ -5,6 +5,7 @@ import { WEBSITE_DASHBOARD_URL, WEBSITE_HOME_URL } from "@/lib/urls";
 import { Logo } from "./Logo";
 import { SettingsButton } from "./SettingsButton";
 import { SyncStatusPill } from "./SyncStatusPill";
+import { Hint } from "@/components/ui/tooltip";
 
 interface PopupHeaderProps {
   isDark: boolean;
@@ -31,14 +32,15 @@ export function PopupHeader({ isDark, isAuthenticated, syncStatus, syncError, is
   return (
     <header className="flex shrink-0 items-center justify-between border-b px-4 py-3 compact:py-2">
       <h1 className="leading-none">
-        <a
-          href={logoUrl}
-          onClick={handleOpenWebsite}
-          title={IS_LOCAL_ONLY ? "Open pinnedtabsaveandsync.com" : "Open your dashboard"}
-          className="inline-block rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          <Logo isDark={isDark} className="h-7 compact:h-6" />
-        </a>
+        <Hint label={IS_LOCAL_ONLY ? "Open pinnedtabsaveandsync.com" : "Open your dashboard"}>
+          <a
+            href={logoUrl}
+            onClick={handleOpenWebsite}
+            className="inline-block rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            <Logo isDark={isDark} className="h-7 compact:h-6" />
+          </a>
+        </Hint>
       </h1>
       <div className="flex items-center gap-2">
         {!IS_LOCAL_ONLY && (

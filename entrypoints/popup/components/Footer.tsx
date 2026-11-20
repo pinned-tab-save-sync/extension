@@ -1,6 +1,7 @@
 import { Cloud } from "lucide-react";
 import type { User } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { Hint } from "@/components/ui/tooltip";
 
 interface FooterProps {
   user: User | null;
@@ -51,9 +52,9 @@ export function Footer({ user, isAuthenticated, onLogout, onSignIn, onRegister }
         >
           {initial}
         </span>
-        <span className="truncate text-[13px] text-muted-foreground" title={user.email}>
-          {user.email}
-        </span>
+        <Hint label={user.email}>
+          <span className="truncate text-[13px] text-muted-foreground">{user.email}</span>
+        </Hint>
       </div>
       <Button type="button" variant="ghost" size="sm" onClick={onLogout}>
         Sign out

@@ -76,6 +76,8 @@ The repository also holds the code for the hosted service's sign-in and sync (`l
 
 shadcn/ui primitives (`button.tsx`, `input.tsx`, `dropdown-menu.tsx`) configured via `components.json` (style `new-york`, CSS variables). Add new primitives here rather than hand-rolling them. Global styles live in `assets/tailwind.css`.
 
+**Tooltips:** never use the `title` attribute in the popup. Some browsers draw a `title` tooltip as its own window, which takes focus from the popup and closes it (seen in Edge on Linux). Wrap the element in `Hint` from `components/ui/tooltip.tsx` instead, which draws the tooltip inside the page.
+
 **Design tokens** (`assets/tailwind.css`): the popup's colours are CSS variables on `:root` and `.dark`, exposed to Tailwind through `@theme inline`. Beyond the shadcn set (`background`, `muted`, `primary` = brand blue, `destructive`, `border`, `input`...) there are `faint` (drag handles), `selected` / `selected-border` (the group loaded in this window), `badge` / `badge-foreground`, `tab-icon` / `tab-icon-border`, and soft status tints `success-soft`, `warning-soft` and `danger-soft` (each with `-foreground`, warning and danger also `-border`). `--scrollbar-thumb` colours the thin scrollbars, and `color-scheme` follows the theme so native controls match. Use these tokens rather than raw Tailwind palette colours so light and dark stay in step.
 
 **Compact layout:** Settings > Layout switches between Comfortable (default) and Compact. Compact is styled with the `compact:` variant (e.g. `py-2 compact:py-1`). Add a `compact:` counterpart when adding spacing that should tighten.

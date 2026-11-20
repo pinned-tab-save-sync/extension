@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { IS_LOCAL_ONLY } from "@/lib/buildMode";
 import type { WindowPinnedTab } from "../hooks/usePinnedTabs";
 import { TabIcon } from "./TabIcon";
+import { Hint } from "@/components/ui/tooltip";
 
 /** How many tab icons the bar shows before summarising the rest as "+N". */
 const MAX_PREVIEW_ICONS = 4;
@@ -65,9 +66,11 @@ export function SaveBar({ pinnedTabs, groupName, onGroupNameChange, onSave, warn
 function PinnedTabsPreview({ pinnedTabs }: { pinnedTabs: WindowPinnedTab[] }) {
   if (pinnedTabs.length === 0) {
     return (
-      <span role="img" aria-label="No pinned tabs in this window" title="No pinned tabs in this window" className="inline-flex shrink-0 text-faint">
-        <Pin className="size-[18px]" aria-hidden="true" />
-      </span>
+      <Hint label="No pinned tabs in this window">
+        <span role="img" aria-label="No pinned tabs in this window" className="inline-flex shrink-0 text-faint">
+          <Pin className="size-[18px]" aria-hidden="true" />
+        </span>
+      </Hint>
     );
   }
 
@@ -75,21 +78,18 @@ function PinnedTabsPreview({ pinnedTabs }: { pinnedTabs: WindowPinnedTab[] }) {
   const hiddenCount = pinnedTabs.length - MAX_PREVIEW_ICONS;
 
   return (
-    <span
-      role="img"
-      aria-label={label}
-      title={pinnedTabs.map((tab) => tab.title || tab.url).join("\n")}
-      className="inline-flex shrink-0 items-center pl-[6px]"
-    >
-      {pinnedTabs.slice(0, MAX_PREVIEW_ICONS).map((tab, index) => (
-        <TabIcon
-          key={tab.id ?? index}
-          url={tab.url}
-          favIconUrl={IS_LOCAL_ONLY ? undefined : tab.favIconUrl}
-          className="-ml-[6px] ring-2 ring-background"
-        />
-      ))}
-      {hiddenCount > 0 && <span className="ml-1.5 text-xs font-semibold text-muted-foreground">+{hiddenCount}</span>}
-    </span>
+    <Hint label={pinnedTabs.map((tab) => tab.title || tab.url).join("\n")}>
+      <span role="img" aria-label={label} className="inline-flex shrink-0 items-center pl-[6px]">
+        {pinnedTabs.slice(0, MAX_PREVIEW_ICONS).map((tab, index) => (
+          <TabIcon
+            key={tab.id ?? index}
+            url={tab.url}
+            favIconUrl={IS_LOCAL_ONLY ? undefined : tab.favIconUrl}
+            className="-ml-[6px] ring-2 ring-background"
+          />
+        ))}
+        {hiddenCount > 0 && <span className="ml-1.5 text-xs font-semibold text-muted-foreground">+{hiddenCount}</span>}
+      </span>
+    </Hint>
   );
 }
