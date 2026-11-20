@@ -75,7 +75,7 @@ function App() {
 
   const { theme, setTheme, resetTheme, isDark } = useTheme();
   const { density, setDensity, resetDensity } = useDensity();
-  const { isBookmarkSyncEnabled, bookmarkSyncError, wasBookmarkSyncDeclined, setBookmarkSyncEnabled, resetBookmarkSync } = useBookmarkSync();
+  const { isBookmarkSyncEnabled, bookmarkSyncError, setBookmarkSyncEnabled, resetBookmarkSync } = useBookmarkSync();
   const pinnedTabs = usePinnedTabs();
 
   const [newGroupName, setNewGroupName] = useState("");
@@ -308,7 +308,7 @@ function App() {
           />
 
           {syncStatus === "overLimit" && syncLimitError && <SyncLimitNotice message={syncLimitError} />}
-          {wasBookmarkSyncDeclined && <BookmarkSyncNotice />}
+          {bookmarkSyncError === "blocked" && <BookmarkSyncNotice />}
 
           <div className="flex shrink-0 items-baseline justify-between px-5 pt-1 pb-1.5 compact:pt-[5px] compact:pb-1">
             <h2 className="text-[13px] font-semibold tracking-[0.02em]">Saved groups</h2>

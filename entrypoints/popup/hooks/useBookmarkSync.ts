@@ -8,10 +8,8 @@ export type BookmarkSyncError = "blocked" | "failed";
 interface UseBookmarkSyncReturn {
   /** Whether this browser mirrors its groups into the "Pinned Tabs" bookmark folder. */
   isBookmarkSyncEnabled: boolean;
-  /** Why switching on did not work, or null. The settings screen words the message. */
+  /** Why switching on did not work, or null. "blocked" is shown as a notice on the main screen, "failed" under the setting. */
   bookmarkSyncError: BookmarkSyncError | null;
-  /** The setting was found switched on without the permission when the popup opened, so it was switched off. */
-  wasBookmarkSyncDeclined: boolean;
   /** Must be called straight from a click: switching on asks the browser for the bookmarks permission. */
   setBookmarkSyncEnabled: (enabled: boolean) => void;
   /** Resets the in-memory setting WITHOUT writing to storage, after "delete all local data". */
@@ -33,7 +31,6 @@ function storeBookmarkSyncSetting(isEnabled: boolean): void {
 export function useBookmarkSync(): UseBookmarkSyncReturn {
   const [isBookmarkSyncEnabled, setEnabledState] = useState(false);
   const [bookmarkSyncError, setBookmarkSyncError] = useState<BookmarkSyncError | null>(null);
-  const [wasBookmarkSyncDeclined, setWasDeclined] = useState(false);
   const latestRequestNumber = useRef(0);
 
   // Load the setting on mount. It only counts while the browser still grants the permission
@@ -48,7 +45,6 @@ export function useBookmarkSync(): UseBookmarkSyncReturn {
           // so switch off and say why
           storeBookmarkSyncSetting(false);
           if (isCurrent) {
-            setWasDeclined(true);
             setBookmarkSyncError("blocked");
           }
           return;
@@ -81,7 +77,6 @@ export function useBookmarkSync(): UseBookmarkSyncReturn {
     // A newer click makes the answer to an older permission request stale
     const requestNumber = ++latestRequestNumber.current;
     setBookmarkSyncError(null);
-    setWasDeclined(false);
 
     if (!enabled) {
       // The background removes the bookmark folder. The permission is kept, so switching back on does not ask again
@@ -127,8 +122,7 @@ export function useBookmarkSync(): UseBookmarkSyncReturn {
   const resetBookmarkSync = useCallback(() => {
     setEnabledState(false);
     setBookmarkSyncError(null);
-    setWasDeclined(false);
   }, []);
 
-  return { isBookmarkSyncEnabled, bookmarkSyncError, wasBookmarkSyncDeclined, setBookmarkSyncEnabled, resetBookmarkSync };
+  return { isBookmarkSyncEnabled, bookmarkSyncError, setBookmarkSyncEnabled, resetBookmarkSync };
 }

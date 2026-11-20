@@ -1,8 +1,11 @@
 import { TriangleAlert } from "lucide-react";
 
+/** Mozilla's guide to switching an extension's optional permissions on, as Firefox does not ask again once the prompt was blocked. */
+const FIREFOX_PERMISSIONS_HELP_URL = "https://support.mozilla.org/kb/manage-optional-permissions-extensions";
+
 /**
  * Inline amber notice shown when bookmark sync was switched on but the browser's permission prompt
- * was declined after the popup closed, so the setting has been switched back off.
+ * was blocked, so the setting has been switched back off.
  */
 export function BookmarkSyncNotice() {
   return (
@@ -14,8 +17,17 @@ export function BookmarkSyncNotice() {
       <div className="flex flex-col gap-0.5">
         <p className="text-sm font-semibold">Bookmark sync is off</p>
         <p className="text-xs leading-relaxed">
-          The browser was not given permission to change your bookmarks, so your groups are not being synced to them. Open the settings to switch it
-          back on.
+          Permission to manage bookmarks was blocked by the browser, so bookmark syncing is disabled.{" "}
+          {import.meta.env.BROWSER === "firefox" ? (
+            <>
+              You'll need to reset permissions to enable it:{" "}
+              <a href={FIREFOX_PERMISSIONS_HELP_URL} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                how to manage extension permissions
+              </a>
+            </>
+          ) : (
+            "Try enabling it again from settings using the toggle."
+          )}
         </p>
       </div>
     </div>

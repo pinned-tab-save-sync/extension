@@ -10,9 +10,6 @@ import { LayoutToggle } from "./LayoutToggle";
 import { ThemeToggle } from "./ThemeToggle";
 import type { BookmarkSyncError } from "../hooks/useBookmarkSync";
 
-/** How to reset a blocked permission in Firefox, which does not ask again once the prompt was blocked. */
-const FIREFOX_RESET_PERMISSIONS_URL = "https://share.gemini.google/TYCuFLvaxu0e";
-
 interface SettingsScreenProps {
   user: User | null;
   isAuthenticated: boolean;
@@ -102,32 +99,17 @@ export function SettingsScreen({
               id="bookmark-sync"
               checked={isBookmarkSyncEnabled}
               onCheckedChange={onBookmarkSyncChange}
-              aria-describedby={bookmarkSyncError ? "bookmark-sync-help bookmark-sync-error" : "bookmark-sync-help"}
+              aria-describedby={bookmarkSyncError === "failed" ? "bookmark-sync-help bookmark-sync-error" : "bookmark-sync-help"}
             />
           </div>
           <p id="bookmark-sync-help" className="text-[13px] leading-normal text-muted-foreground">
             Syncs your tab groups to a folder called "{BOOKMARK_FOLDER_TITLE}" in your browser bookmarks. Turning this off removes the folder. If your
             browser syncs bookmarks between devices, only enable this in one browser.
           </p>
-          {bookmarkSyncError && (
+          {/* A blocked permission prompt is reported on the main screen instead (BookmarkSyncNotice) */}
+          {bookmarkSyncError === "failed" && (
             <p id="bookmark-sync-error" role="alert" className="text-xs text-destructive dark:text-danger-soft-foreground">
-              {bookmarkSyncError === "failed" ? (
-                "Could not switch bookmark sync on. Please try again."
-              ) : (
-                <>
-                  Permission to manage bookmarks was blocked.{" "}
-                  {import.meta.env.BROWSER === "firefox" ? (
-                    <>
-                      You'll need to reset permissions to enable it:{" "}
-                      <a href={FIREFOX_RESET_PERMISSIONS_URL} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
-                        how to reset permissions
-                      </a>
-                    </>
-                  ) : (
-                    "Try enabling again with the toggle above."
-                  )}
-                </>
-              )}
+              Could not switch bookmark sync on. Please try again.
             </p>
           )}
         </section>
