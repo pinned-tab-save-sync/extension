@@ -1,6 +1,7 @@
 import { Check, Laptop, LoaderCircle, Pause, RotateCw } from "lucide-react";
 import type { SyncStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Hint } from "@/components/ui/tooltip";
 
 interface SyncStatusPillProps {
   isAuthenticated: boolean;
@@ -47,16 +48,17 @@ export function SyncStatusPill({ isAuthenticated, syncStatus, syncError, isOffli
     const label = isOffline ? "Offline" : "Sync failed";
 
     return (
-      <button
-        type="button"
-        onClick={onRetry}
-        title={syncError || label}
-        aria-label={`${label}. Retry sync`}
-        className={cn(pillClasses, "cursor-pointer bg-warning-soft text-warning-soft-foreground hover:brightness-95 dark:hover:brightness-125")}
-      >
-        <RotateCw aria-hidden="true" />
-        {label} - Retry
-      </button>
+      <Hint label={syncError || label}>
+        <button
+          type="button"
+          onClick={onRetry}
+          aria-label={`${label}. Retry sync`}
+          className={cn(pillClasses, "cursor-pointer bg-warning-soft text-warning-soft-foreground hover:brightness-95 dark:hover:brightness-125")}
+        >
+          <RotateCw aria-hidden="true" />
+          {label} - Retry
+        </button>
+      </Hint>
     );
   }
 

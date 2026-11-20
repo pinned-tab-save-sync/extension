@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { UpdateGroupButton } from "./UpdateGroupButton";
+import { Hint } from "@/components/ui/tooltip";
 
 /** Row buttons shrink in the compact layout */
 const COMPACT_ROW_BUTTON = "compact:h-7 compact:px-2.5";
@@ -75,9 +76,9 @@ export function GroupRowContent({
   return (
     <>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 compact:flex-row compact:items-center compact:gap-2">
-        <span className="truncate text-[15px] leading-[22px] font-semibold compact:text-sm" title={name}>
-          {name}
-        </span>
+        <Hint label={name}>
+          <span className="truncate text-[15px] leading-[22px] font-semibold compact:text-sm">{name}</span>
+        </Hint>
         <div className="flex shrink-0 items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground">
           <span>
             {tabCount} {tabCount === 1 ? "tab" : "tabs"}
@@ -93,22 +94,23 @@ export function GroupRowContent({
         {isActive ? (
           <>
             <UpdateGroupButton name={name} onUpdate={onUpdate} disabled={isBusy} className={COMPACT_ROW_BUTTON} />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-sm"
-              onClick={() => {
-                turnResetIcon();
-                onOpen();
-              }}
-              disabled={isBusy}
-              className={COMPACT_ROW_ICON_BUTTON}
-              aria-label={`Reset this window to the saved ${name} tabs`}
-              title="Reset window to saved tabs"
-            >
-              {/* One anticlockwise turn per click, following the arrow */}
-              <RotateCcw aria-hidden="true" className={cn(isResetIconTurning && "motion-safe:animate-[spin_500ms_ease-in-out_reverse]")} />
-            </Button>
+            <Hint label="Reset window to saved tabs">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                onClick={() => {
+                  turnResetIcon();
+                  onOpen();
+                }}
+                disabled={isBusy}
+                className={COMPACT_ROW_ICON_BUTTON}
+                aria-label={`Reset this window to the saved ${name} tabs`}
+              >
+                {/* One anticlockwise turn per click, following the arrow */}
+                <RotateCcw aria-hidden="true" className={cn(isResetIconTurning && "motion-safe:animate-[spin_500ms_ease-in-out_reverse]")} />
+              </Button>
+            </Hint>
           </>
         ) : (
           <Button type="button" variant="outline" size="sm" onClick={onOpen} disabled={isBusy} className={COMPACT_ROW_BUTTON}>
