@@ -4,6 +4,10 @@ import { loadEnv } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
+// Asked for only when "Sync pinned tab groups to browser bookmarks" is switched on in the settings, so installing shows no
+// bookmarks warning. Supported as an optional permission by Chrome, Edge and Firefox.
+const OPTIONAL_PERMISSIONS = ["bookmarks"];
+
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
@@ -20,6 +24,7 @@ export default defineConfig({
         name: "Pinned Tab Save & Sync",
         description: "Save groups of pinned tabs and switch between them in one click.",
         permissions: ["tabs", "storage"],
+        optional_permissions: OPTIONAL_PERMISSIONS,
         ...(env.browser === "firefox"
           ? {
               browser_specific_settings: {
@@ -54,6 +59,7 @@ export default defineConfig({
       name: "Pinned Tab Save & Sync",
       // The store's short description (132 characters max); keep in step with CHROMEWEBSTORE.md
       description: "Save groups of pinned tabs, switch between them in one click and sync them across your browsers.",
+      optional_permissions: OPTIONAL_PERMISSIONS,
       ...(env.browser === "firefox"
         ? {
             // Firefox signs in through browser.identity (its sign-in window works with password managers)

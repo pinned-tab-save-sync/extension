@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { fakeBrowser } from "wxt/testing/fake-browser";
+import { installFakeBookmarks } from "@/lib/testing/fakeBookmarks";
 
 /** Load a module afresh, as built with the given VITE_LOCAL_ONLY value (undefined = not set). */
 async function importBuiltWith<T>(localOnly: string | undefined, path: string): Promise<T> {
@@ -10,6 +11,8 @@ async function importBuiltWith<T>(localOnly: string | undefined, path: string): 
 
 beforeEach(() => {
   fakeBrowser.reset();
+  // The background registers its bookmark sync listeners, which the fake browser lacks
+  installFakeBookmarks();
 });
 
 afterEach(() => {

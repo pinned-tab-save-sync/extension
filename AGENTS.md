@@ -32,8 +32,8 @@ Formatting uses Prettier (`.prettierrc`, print width 150). Tests are in `lib/**/
 `IS_LOCAL_ONLY` (`lib/buildMode.ts`) is true unless the build sets `VITE_LOCAL_ONLY=false`, so a clone with no `.env` builds the local-only extension. A local-only build:
 
 - never signs in and makes no network requests: no account, no sync, and no favicons loaded from sites (the save bar shows lettered circles instead)
-- shows no sync status and no account footer; the settings view has only Appearance and Local data
-- asks for only the `tabs` and `storage` permissions
+- shows no sync status and no account footer; the settings view has only Appearance, Bookmarks and Local data
+- asks for only the `tabs` and `storage` permissions at install (`bookmarks` is optional, see Bookmark Sync)
 
 The repository also holds the code for the hosted service's sign-in and sync (`lib/api/`, `lib/auth/`, `lib/sync.ts`, `lib/limits.ts`, parts of the popup hooks and components). It is switched on only by `VITE_LOCAL_ONLY=false`, needs that service's servers, and cannot be run from this repository alone. When working here:
 
@@ -60,6 +60,7 @@ The repository also holds the code for the hosted service's sign-in and sync (`l
 ### Shared Code (`lib/`)
 
 - `buildMode.ts` - `IS_LOCAL_ONLY` (see Build Mode)
+- `bookmarkSync.ts` - The optional "Sync pinned tab groups to browser bookmarks" setting (see Bookmark Sync)
 - `types.ts` - Shared types (`TabGroups` and others)
 - `groupName.ts` - `validateGroupName` and `MAX_GROUP_NAME_LENGTH`: a new group's name is at most 50 characters with no control characters or line breaks
 - `tabUrl.ts` - `isAllowedTabUrl`: only web addresses (http, https) and browser pages (`about:`, `chrome:`, `file:`...) are saved in a group or opened from one; `javascript:`, `data:` and anything else is refused
@@ -72,9 +73,21 @@ The repository also holds the code for the hosted service's sign-in and sync (`l
 - `urls.ts` - `WEBSITE_HOME_URL` (opened from the popup logo)
 - `utils.ts` - `cn()` class-name helper (shadcn)
 
+### Bookmark Sync
+
+Settings > Bookmarks > "Sync pinned tab groups to browser bookmarks" keeps a "Pinned Tabs" bookmark folder with one folder per group, in the groups' order, each holding that group's URLs. It is a setting for this browser only (`bookmarkSync` in `browser.storage.local`) and is off by default.
+
+- **Permission:** `bookmarks` is in `optional_permissions`, so installing shows no bookmarks warning. The switch calls `browser.permissions.request()` straight from the click (Firefox refuses a request made after anything asynchronous), which works the same in Chrome, Edge and Firefox. Browsers often close the popup while they ask, so the popup only stores the setting and requests the permission; the syncing is done by the background.
+- **Background (`registerBookmarkSync` in `lib/bookmarkSync.ts`):** syncs after any change to `tabGroups`, `groupOrder` or the setting (`storage.onChanged`), when the permission is granted (`permissions.onAdded`), on browser launch and after an update. Runs are queued one at a time. If the permission is taken away in the browser's own settings, the setting is switched off; the folder can no longer be removed, so it is left in place and picked up again if the setting is switched back on.
+- **The folder:** created without a parent, which every supported browser puts in "Other bookmarks" ("Other favourites" in Edge). Its id is kept in `bookmarkSyncFolderId`, so it is found again wherever the user moves or renames it; if it was deleted a new one is made (a folder that merely has the same name is never adopted). The id is stored before anything is put in the folder, so an interrupted sync does not leave a second folder behind, and an id that points at one of the browser's own folders (the bookmarks bar, "Other bookmarks") is never used, as syncing empties the folder it is given. Only this folder is ever touched. If the browser itself syncs bookmarks, it syncs this folder like any other (the settings text says so).
+- **Syncing** changes as little as possible: matching folders (by name) and bookmarks (by URL, compared as the browser stores them) are kept and moved into place, missing ones created, everything else in the folder removed. It is one way: edits made to the bookmarks are overwritten by the next sync. The extension stores only URLs, so a bookmark is titled from the open pinned tab with that URL, or else the address without its scheme; a title the user gives a bookmark is kept. Only URLs that pass `isAllowedTabUrl` are bookmarked (never `javascript:` or `data:`), and a URL the browser refuses to bookmark is skipped. Changes arriving while a sync is waiting share that one sync.
+- **Blocked prompt:** if the permission prompt is declined or blocked, the setting is switched back off and an amber notice on the main screen says why (`BookmarkSyncNotice`), with browser-specific advice: Firefox does not ask again, so it links to Mozilla's guide to optional permissions. This also covers the popup closing while the browser asks: the setting is then left on with no permission, which the popup spots the next time it opens. Only a request that fails outright is reported under the setting itself.
+- **Switching off** (or "Delete all local data") removes the folder. The permission is kept once granted (`permissions.remove()` is never called), so switching back on does not ask again.
+- **Tests** use `lib/testing/fakeBookmarks.ts`, an in-memory bookmarks tree and permission (the WXT fake browser implements neither). Any test that starts the background needs `installFakeBookmarks()`.
+
 ### UI Components (`components/ui/`)
 
-shadcn/ui primitives (`button.tsx`, `input.tsx`, `dropdown-menu.tsx`) configured via `components.json` (style `new-york`, CSS variables). Add new primitives here rather than hand-rolling them. Global styles live in `assets/tailwind.css`.
+shadcn/ui primitives (`button.tsx`, `input.tsx`, `dropdown-menu.tsx`, `switch.tsx`, `tooltip.tsx`) configured via `components.json` (style `new-york`, CSS variables). Add new primitives here rather than hand-rolling them. Global styles live in `assets/tailwind.css`.
 
 **Tooltips:** never use the `title` attribute in the popup. Some browsers draw a `title` tooltip as its own window, which takes focus from the popup and closes it (seen in Edge on Linux). Wrap the element in `Hint` from `components/ui/tooltip.tsx` instead, which draws the tooltip inside the page.
 
@@ -90,6 +103,7 @@ Defines the manifest (a function of the build env, so each browser and build mod
 
 - `tabs` permission - Query and manipulate browser tabs
 - `storage` permission - Persist tab groups to browser storage
+- `bookmarks` optional permission - Asked for only when bookmark sync is switched on (see Bookmark Sync)
 - `minimum_chrome_version` 111 and gecko `strict_min_version` 140.0: Tailwind 4's CSS (`oklch`, `@property`, `color-mix`) needs Chrome 111 / Firefox 128, and `data_collection_permissions` needs Firefox 140
 - `browser_specific_settings.gecko` (Firefox only) - A fixed add-on id, so saved groups survive reloads, and `data_collection_permissions` of `none`
 
@@ -127,7 +141,7 @@ A save checks the name (`validateGroupName`, new names only) and leaves out pinn
 
 ### Settings Screen
 
-The settings button in the popup header opens an inline settings view with the theme and layout toggles and a "Delete all local data" action, which asks for confirmation and then clears every saved group and setting. Open tabs are not closed.
+The settings button in the popup header opens an inline settings view with the theme and layout toggles, the bookmark sync switch (see Bookmark Sync) and a "Delete all local data" action, which asks for confirmation and then clears every saved group and setting. Open tabs are not closed.
 
 ## Browser API Usage
 

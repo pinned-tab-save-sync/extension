@@ -3,9 +3,12 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import type { User } from "@/lib/types";
 import type { DensityPreference, ThemePreference } from "@/lib/storage/keys";
 import { WEBSITE_SECURITY_URL } from "@/lib/urls";
+import { BOOKMARK_FOLDER_TITLE } from "@/lib/bookmarkSync";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { LayoutToggle } from "./LayoutToggle";
 import { ThemeToggle } from "./ThemeToggle";
+import type { BookmarkSyncError } from "../hooks/useBookmarkSync";
 
 interface SettingsScreenProps {
   user: User | null;
@@ -17,6 +20,10 @@ interface SettingsScreenProps {
   onThemeChange: (theme: ThemePreference) => void;
   density: DensityPreference;
   onDensityChange: (density: DensityPreference) => void;
+  isBookmarkSyncEnabled: boolean;
+  bookmarkSyncError: BookmarkSyncError | null;
+  /** Called straight from the switch's click, as switching on asks the browser for a permission. */
+  onBookmarkSyncChange: (enabled: boolean) => void;
 }
 
 export function SettingsScreen({
@@ -28,6 +35,9 @@ export function SettingsScreen({
   onThemeChange,
   density,
   onDensityChange,
+  isBookmarkSyncEnabled,
+  bookmarkSyncError,
+  onBookmarkSyncChange,
 }: SettingsScreenProps) {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -78,13 +88,37 @@ export function SettingsScreen({
           </div>
         </section>
 
+        {/* Bookmarks section - a setting for this browser only */}
+        <section className="flex flex-col gap-2.5 border-t px-5 py-4 compact:py-3">
+          <h3 className="text-[13px] font-semibold">Bookmarks</h3>
+          <div className="flex items-center justify-between gap-3">
+            <label htmlFor="bookmark-sync" className="cursor-pointer text-[13px]">
+              Sync pinned tab groups to browser bookmarks
+            </label>
+            <Switch
+              id="bookmark-sync"
+              checked={isBookmarkSyncEnabled}
+              onCheckedChange={onBookmarkSyncChange}
+              aria-describedby={bookmarkSyncError === "failed" ? "bookmark-sync-help bookmark-sync-error" : "bookmark-sync-help"}
+            />
+          </div>
+          <p id="bookmark-sync-help" className="text-[13px] leading-normal text-muted-foreground">
+            Syncs your tab groups to a folder called "{BOOKMARK_FOLDER_TITLE}" in your browser bookmarks. Turning this off removes the folder. If your
+            browser syncs bookmarks between devices, only enable this in one browser.
+          </p>
+          {/* A blocked permission prompt is reported on the main screen instead (BookmarkSyncNotice) */}
+          {bookmarkSyncError === "failed" && (
+            <p id="bookmark-sync-error" role="alert" className="text-xs text-destructive dark:text-danger-soft-foreground">
+              Could not switch bookmark sync on. Please try again.
+            </p>
+          )}
+        </section>
+
         {/* Security section - logged-in users only */}
         {isAuthenticated && user && (
           <section className="flex flex-col gap-2.5 border-t px-5 py-4 compact:py-3">
             <h3 className="text-[13px] font-semibold">Security</h3>
-            <p className="text-[13px] leading-normal text-muted-foreground">
-              Your password, two-factor authentication and passkeys are managed on the website.
-            </p>
+            <p className="text-[13px] leading-normal text-muted-foreground">Manage your password, 2FA and passkeys on the website.</p>
             <div>
               <Button type="button" variant="outline" size="sm" onClick={handleOpenSecurity}>
                 Open website
@@ -102,8 +136,9 @@ export function SettingsScreen({
             <>
               <p className="text-[13px] leading-normal text-muted-foreground">
                 {isAuthenticated
-                  ? "Logs you out, then removes every saved tab group and setting stored in this browser. Tab groups already synced to your account are not affected and will return when you log in again. Your open tabs are not closed."
+                  ? "Logs you out and deletes all local data. Tab groups saved to your account are not affected."
                   : "Removes every saved tab group and setting stored in this browser. Your open tabs are not closed."}
+                {isBookmarkSyncEnabled && ` The "${BOOKMARK_FOLDER_TITLE}" bookmark folder is also removed.`}
               </p>
               {errorMessage && (
                 <p role="alert" className="text-xs text-destructive dark:text-danger-soft-foreground">

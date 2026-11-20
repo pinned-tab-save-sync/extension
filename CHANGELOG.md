@@ -3,6 +3,14 @@
 All notable changes to Pinned Tab Save & Sync are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-11-20
+
+### Added
+
+- Optional "Sync pinned tab groups to browser bookmarks" setting (Settings > Bookmarks): keeps a "Pinned Tabs" bookmark folder with one
+  folder per group, in the groups' order. Off by default, set per browser, and the bookmarks permission is only asked for when the
+  setting is switched on
+
 ## [1.0.0] - 2026-11-20
 
 First public release, for Chrome, Microsoft Edge and Firefox.
@@ -19,4 +27,5 @@ First public release, for Chrome, Microsoft Edge and Firefox.
   side to keep, or merges both, when two browsers disagree
 - Local-only build by default when building from source: no sign-in, no sync and nothing leaves the browser
 
+[1.1.0]: https://github.com/pinned-tab-save-sync/extension/releases/tag/v1.1.0
 [1.0.0]: https://github.com/pinned-tab-save-sync/extension/releases/tag/v1.0.0

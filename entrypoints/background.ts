@@ -1,6 +1,7 @@
 import { completeTabSignIn, startTabSignIn } from "@/lib/auth/tabSignIn";
 import { migrateLegacyActiveGroups, setActiveGroupForWindow } from "@/lib/storage/activeGroups";
 import { setAuthToken } from "@/lib/storage/auth";
+import { queueBookmarkSync, registerBookmarkSync } from "@/lib/bookmarkSync";
 import { IS_LOCAL_ONLY } from "@/lib/buildMode";
 import { STORAGE_KEYS } from "@/lib/storage/keys";
 import { replacePinnedTabs } from "@/lib/tabs";
@@ -20,8 +21,12 @@ export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(({ reason }) => {
     if (reason === "update") {
       migrateLegacyActiveGroups().catch((error) => console.error("[Background] Failed to migrate active groups:", error));
+      void queueBookmarkSync();
     }
   });
+
+  // Mirror the groups into a bookmark folder while the setting is on (it needs no account)
+  registerBookmarkSync();
 
   // Forget a window's active group when it closes
   browser.windows.onRemoved.addListener((windowId) => {
