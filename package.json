@@ -3,7 +3,7 @@
   "description": "Save groups of pinned tabs, switch between them in one click and sync them across your browsers",
   "private": true,
   "license": "AGPL-3.0-only",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",

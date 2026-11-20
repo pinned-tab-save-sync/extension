@@ -3,6 +3,7 @@ import "@/assets/tailwind.css";
 import { useAuth } from "./hooks/useAuth";
 import { useGroups } from "./hooks/useGroups";
 import { usePinnedTabs } from "./hooks/usePinnedTabs";
+import { useBookmarkSync } from "./hooks/useBookmarkSync";
 import { useDensity } from "./hooks/useDensity";
 import { useTheme } from "./hooks/useTheme";
 import { Footer } from "./components/Footer";
@@ -11,6 +12,7 @@ import { PopupHeader } from "./components/PopupHeader";
 import { SaveBar } from "./components/SaveBar";
 import { SettingsScreen } from "./components/SettingsScreen";
 import { SyncConflictPrompt } from "./components/SyncConflictPrompt";
+import { BookmarkSyncNotice } from "./components/BookmarkSyncNotice";
 import { SyncLimitNotice } from "./components/SyncLimitNotice";
 import { SortableGroupList } from "./components/SortableGroupList";
 import { SortableGroupItem } from "./components/SortableGroupItem";
@@ -73,6 +75,7 @@ function App() {
 
   const { theme, setTheme, resetTheme, isDark } = useTheme();
   const { density, setDensity, resetDensity } = useDensity();
+  const { isBookmarkSyncEnabled, bookmarkSyncError, wasBookmarkSyncDeclined, setBookmarkSyncEnabled, resetBookmarkSync } = useBookmarkSync();
   const pinnedTabs = usePinnedTabs();
 
   const [newGroupName, setNewGroupName] = useState("");
@@ -220,6 +223,7 @@ function App() {
     resetLocalState();
     resetTheme();
     resetDensity();
+    resetBookmarkSync();
     setNewGroupName("");
     setWarning(null);
     setGroupPendingDelete(null);
@@ -254,6 +258,9 @@ function App() {
         onThemeChange={setTheme}
         density={density}
         onDensityChange={setDensity}
+        isBookmarkSyncEnabled={isBookmarkSyncEnabled}
+        bookmarkSyncError={bookmarkSyncError}
+        onBookmarkSyncChange={setBookmarkSyncEnabled}
       />
     );
   }
@@ -301,6 +308,7 @@ function App() {
           />
 
           {syncStatus === "overLimit" && syncLimitError && <SyncLimitNotice message={syncLimitError} />}
+          {wasBookmarkSyncDeclined && <BookmarkSyncNotice />}
 
           <div className="flex shrink-0 items-baseline justify-between px-5 pt-1 pb-1.5 compact:pt-[5px] compact:pb-1">
             <h2 className="text-[13px] font-semibold tracking-[0.02em]">Saved groups</h2>

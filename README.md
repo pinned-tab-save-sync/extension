@@ -2,10 +2,10 @@
 
 Pinned Tab Save & Sync saves your pinned tabs into named groups so you can reopen them anytime with one click.
 
-You can grab the official release for Chrome, Firefox, or Edge via [pinnedtabsaveandsync.com](https://pinnedtabsaveandsync.com/). Out of 
+You can grab the official release for Chrome, Firefox, or Edge via [pinnedtabsaveandsync.com](https://pinnedtabsaveandsync.com/). Out of
 the box, it works locally in one browser, or you can create an account to sync your tabs across multiple browsers.
 
-Prefer to keep things strictly on-site? Building the open-source extension from this repo gives you a completely offline version. Your 
+Prefer to keep things strictly on-site? Building the open-source extension from this repo gives you a completely offline version. Your
 data stays in your browser - no syncing, no favicons, and no sign-up needed.
 
 ## Features
@@ -97,6 +97,12 @@ reopens the last-used group in the focused window and removes the pinned tabs th
 
 The extension asks for two permissions: `tabs`, to read the addresses of your pinned tabs and to open and close pinned tabs, and `storage`, to
 keep your groups.
+
+A third, `bookmarks`, is optional and only asked for if you switch on "Sync pinned tab groups to browser bookmarks" in the settings. The
+extension then keeps a "Pinned Tabs" bookmark folder with a folder for each group, updated whenever your groups change. It only ever touches
+that folder. The copy is one way (edit your groups in the extension, not in the bookmarks), and switching the setting off removes the folder.
+If your browser syncs its bookmarks between devices, it syncs this folder too, so with the setting on in more than one browser you will see a
+folder from each.
 
 ## Contributing
 

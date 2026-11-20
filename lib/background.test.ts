@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { fakeBrowser } from "wxt/testing/fake-browser";
+import { installFakeBookmarks } from "@/lib/testing/fakeBookmarks";
 import { getActiveGroupForWindow } from "@/lib/storage/activeGroups";
 import { STORAGE_KEYS } from "@/lib/storage/keys";
 import background from "@/entrypoints/background";
@@ -24,6 +25,8 @@ async function launchBrowser(createTab: (url: string) => Promise<{ id: number }>
 
 beforeEach(() => {
   fakeBrowser.reset();
+  // The background registers its bookmark sync listeners, which the fake browser lacks
+  installFakeBookmarks();
   // Not in the fake browser; the Chrome build listens for the website's sign-in message
   vi.spyOn(browser.runtime.onMessageExternal, "addListener").mockImplementation(() => undefined);
 });
@@ -61,6 +64,6 @@ describe("updating the extension", () => {
     await fakeBrowser.runtime.onInstalled.trigger({ reason: "update", previousVersion: "0.1.0" });
     await vi.waitFor(async () => expect(await getActiveGroupForWindow(1)).toBe("Work"));
 
-    expect(await browser.storage.local.get("activeGroupsByWindow")).toEqual({});
+    await vi.waitFor(async () => expect(await browser.storage.local.get("activeGroupsByWindow")).toEqual({}));
   });
 });

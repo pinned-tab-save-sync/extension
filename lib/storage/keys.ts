@@ -10,6 +10,8 @@ export const STORAGE_KEYS = {
   LAST_SYNCED_FINGERPRINT: "lastSyncedFingerprint",
   SYNC_PAUSED_OVER_LIMIT: "syncPausedOverLimit",
   PENDING_TAB_SIGN_IN: "pendingTabSignIn",
+  BOOKMARK_SYNC: "bookmarkSync", // whether this browser mirrors its groups into a bookmark folder
+  BOOKMARK_SYNC_FOLDER_ID: "bookmarkSyncFolderId",
 } as const;
 
 export type ThemePreference = "system" | "light" | "dark";
