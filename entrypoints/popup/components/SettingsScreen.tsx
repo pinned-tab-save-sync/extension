@@ -3,6 +3,7 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import type { User } from "@/lib/types";
 import type { DensityPreference, ThemePreference } from "@/lib/storage/keys";
 import { WEBSITE_SECURITY_URL } from "@/lib/urls";
+import { SUPPORTED_IMPORT_SOURCES } from "@/lib/import";
 import { Button } from "@/components/ui/button";
 import { LayoutToggle } from "./LayoutToggle";
 import { ThemeToggle } from "./ThemeToggle";
@@ -53,6 +54,11 @@ export function SettingsScreen({
     window.close();
   };
 
+  const handleOpenImport = () => {
+    browser.tabs.create({ url: browser.runtime.getURL("/import.html"), active: true });
+    window.close();
+  };
+
   const deleteButtonLabel = isAuthenticated ? "Log out and delete all local data" : "Delete all local data";
 
   return (
@@ -75,6 +81,20 @@ export function SettingsScreen({
           <div className="flex items-center justify-between gap-3">
             <span className="text-[13px] text-muted-foreground">Layout</span>
             <LayoutToggle density={density} onDensityChange={onDensityChange} />
+          </div>
+        </section>
+
+        {/* Import section - opens a page in a tab, as Firefox closes the popup when a file picker opens */}
+        <section className="flex flex-col gap-2.5 border-t px-5 py-4 compact:py-3">
+          <h3 className="text-[13px] font-semibold">Import</h3>
+          <p className="text-[13px] leading-normal text-muted-foreground">
+            Bring in tab groups exported from another extension: {SUPPORTED_IMPORT_SOURCES.join(", ")}.
+          </p>
+          <div>
+            <Button type="button" variant="outline" size="sm" onClick={handleOpenImport}>
+              Import tab groups
+              <ExternalLink aria-hidden="true" />
+            </Button>
           </div>
         </section>
 

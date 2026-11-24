@@ -16,7 +16,7 @@ interface TabPayload {
  * An empty group map with no prototype, so a group named after an Object.prototype member
  * ("constructor", "toString", "__proto__") is an ordinary key rather than an inherited value.
  */
-function createGroupMap(): TabGroups {
+export function createGroupMap(): TabGroups {
   return Object.create(null) as TabGroups;
 }
 
@@ -287,6 +287,11 @@ export function decideLoadAction(input: {
 
   // 7. Dirty: local was edited since last sync and differs from the account
   return "conflict";
+}
+
+/** Whether these groups are what this context last synced or loaded (false before the first sync or load). */
+export function isLastSyncedState(groups: TabGroups, groupOrder: string[]): boolean {
+  return lastSyncedFingerprint !== null && buildSyncFingerprint(groups, groupOrder) === lastSyncedFingerprint;
 }
 
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;

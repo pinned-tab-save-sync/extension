@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import "@/assets/tailwind.css";
 import { useAuth } from "./hooks/useAuth";
 import { useGroups } from "./hooks/useGroups";
+import { useSyncLimits } from "./hooks/useSyncLimits";
 import { usePinnedTabs } from "./hooks/usePinnedTabs";
 import { useDensity } from "./hooks/useDensity";
 import { useTheme } from "./hooks/useTheme";
@@ -19,9 +20,9 @@ import { clearAuthToken, clearStoredUser, getAuthToken } from "@/lib/storage/aut
 import { deleteAllLocalData } from "@/lib/localData";
 import { replacePinnedTabs } from "@/lib/tabs";
 import { checkSaveAgainstLimits, findMatchingGroupName } from "@/lib/limits";
-import { validateGroupName } from "@/lib/groupName";
-import { isAllowedTabUrl } from "@/lib/tabUrl";
-import type { SyncConflictChoice, UserLimits } from "@/lib/types";
+import { trimGroupName, validateGroupName } from "@/lib/groupName";
+import { toSyncableTabUrl } from "@/lib/tabUrl";
+import type { SyncConflictChoice } from "@/lib/types";
 
 /** The reason a browser gave for refusing a storage write, for showing to the user. */
 function describeError(error: unknown): string {
@@ -41,14 +42,8 @@ function App() {
     clearJustLoggedIn,
   } = useAuth();
 
-  // Limits only apply while signed in; logged out (local only) is unlimited. Memoised on the values, as the
-  // background user refresh replaces the object on every popup open and would otherwise re-run the sync effect.
-  const maxGroups = isAuthenticated ? user?.limits?.max_groups : undefined;
-  const maxTabsPerGroup = isAuthenticated ? user?.limits?.max_tabs_per_group : undefined;
-  const syncLimits = useMemo<UserLimits | null>(
-    () => (maxGroups !== undefined && maxTabsPerGroup !== undefined ? { max_groups: maxGroups, max_tabs_per_group: maxTabsPerGroup } : null),
-    [maxGroups, maxTabsPerGroup],
-  );
+  // Limits only apply while signed in; logged out (local only) is unlimited
+  const syncLimits = useSyncLimits(user, isAuthenticated);
 
   const {
     groups,
@@ -93,7 +88,7 @@ function App() {
 
   /** Saves the window's pinned tabs as the named group; false when a warning stopped the save. */
   const saveCurrentPinned = async (name: string): Promise<boolean> => {
-    const trimmedName = name.trim();
+    const trimmedName = trimGroupName(name);
     // A name the API treats as the same group ("work" for "Work") updates that group rather than adding a duplicate
     const existingName = findMatchingGroupName(groups, trimmedName);
     // Only a new name is checked, so a group saved before the rule existed can still be updated
@@ -110,8 +105,9 @@ function App() {
       return false;
     }
     const pinnedUrls = pinnedTabs.map((tab) => tab.url).filter(Boolean) as string[];
-    // Only web addresses and browser pages are saved (not e.g. data: or blob: tabs)
-    const urls = pinnedUrls.filter(isAllowedTabUrl);
+    // Only web addresses and browser pages are saved (not e.g. data: or blob: tabs), written so the API accepts them
+    // unchanged: browsers leave characters such as `|` unencoded, which the API refuses, failing every sync
+    const urls = pinnedUrls.map(toSyncableTabUrl).filter((url): url is string => url !== null);
     const leftOutCount = pinnedUrls.length - urls.length;
     if (urls.length === 0) {
       setWarning("None of this window's pinned tabs can be saved: only web addresses and browser pages can be");

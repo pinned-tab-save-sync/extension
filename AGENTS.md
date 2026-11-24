@@ -32,7 +32,7 @@ Formatting uses Prettier (`.prettierrc`, print width 150). Tests are in `lib/**/
 `IS_LOCAL_ONLY` (`lib/buildMode.ts`) is true unless the build sets `VITE_LOCAL_ONLY=false`, so a clone with no `.env` builds the local-only extension. A local-only build:
 
 - never signs in and makes no network requests: no account, no sync, and no favicons loaded from sites (the save bar shows lettered circles instead)
-- shows no sync status and no account footer; the settings view has only Appearance and Local data
+- shows no sync status and no account footer; the settings view has only Appearance, Import and Local data
 - asks for only the `tabs` and `storage` permissions
 
 The repository also holds the code for the hosted service's sign-in and sync (`lib/api/`, `lib/auth/`, `lib/sync.ts`, `lib/limits.ts`, parts of the popup hooks and components). It is switched on only by `VITE_LOCAL_ONLY=false`, needs that service's servers, and cannot be run from this repository alone. When working here:
@@ -54,15 +54,16 @@ The repository also holds the code for the hosted service's sign-in and sync (`l
   - `hooks/useTheme.ts` - Theme preference (`system` / `light` / `dark`) with system dark-mode detection; puts the `dark` class on `<html>` so portalled content (menus) is themed too
   - `hooks/useDensity.ts` - Layout preference (`comfortable` / `compact`); sets `data-density` on `<html>` for the `compact:` Tailwind variant
   - `hooks/usePinnedTabs.ts` - The popup window's pinned tabs, kept current while the popup is open
-  - `components/` - `PopupHeader` (logo linking to the public website, `SettingsButton`), `SaveBar` (one-line save: pinned tab icons, name input, Save, and the warning line for anything that stops a save), `TabIcon` (a coloured circle with the site's first letter), `SortableGroupList` / `SortableGroupItem` (dnd-kit drag reorder; the row also renders the inline delete confirmation), `GroupRowContent` (name, tab count, "In this window" badge, Open or Update + Reset, and a menu with Delete), `UpdateGroupButton` (the row's Update: a spinner shown for at least 400ms, which turns into a tick on a green flash that fades back once saved), `SegmentedControl` (shared icon + label toggle), `ThemeToggle` and `LayoutToggle` (both in settings), `Logo` (theme-aware logo from `public/icon/`), `SettingsScreen` (appearance: theme and layout; delete all local data)
+  - `components/` - `PopupHeader` (logo linking to the public website, `SettingsButton`), `SaveBar` (one-line save: pinned tab icons, name input, Save, and the warning line for anything that stops a save), `TabIcon` (a coloured circle with the site's first letter), `SortableGroupList` / `SortableGroupItem` (dnd-kit drag reorder; the row also renders the inline delete confirmation), `GroupRowContent` (name, tab count, "In this window" badge, Open or Update + Reset, and a menu with Delete), `UpdateGroupButton` (the row's Update: a spinner shown for at least 400ms, which turns into a tick on a green flash that fades back once saved), `SegmentedControl` (shared icon + label toggle), `ThemeToggle` and `LayoutToggle` (both in settings), `Logo` (theme-aware logo from `public/icon/`), `SettingsScreen` (appearance: theme and layout; import; delete all local data)
+- **`import/`** - The import page (`/import.html`, opened in a tab from Settings > Import; see Import). `App.tsx` uses the popup's `useGroups` and `useTheme` hooks; `components/` holds `ImportFilePicker` (drop zone and file input) and `ImportPreview` (the export's groups with checkboxes, the merge or replace choice and the Import button)
 - **`background.ts`** - Background script (a service worker in Chromium). Restores the last-used tab group on browser launch via `runtime.onStartup`, forgets a window's active group when it closes, and moves data an older version stored on `runtime.onInstalled` (update).
 
 ### Shared Code (`lib/`)
 
 - `buildMode.ts` - `IS_LOCAL_ONLY` (see Build Mode)
 - `types.ts` - Shared types (`TabGroups` and others)
-- `groupName.ts` - `validateGroupName` and `MAX_GROUP_NAME_LENGTH`: a new group's name is at most 50 characters with no control characters or line breaks
-- `tabUrl.ts` - `isAllowedTabUrl`: only web addresses (http, https) and browser pages (`about:`, `chrome:`, `file:`...) are saved in a group or opened from one; `javascript:`, `data:` and anything else is refused
+- `groupName.ts` - `validateGroupName` and `MAX_GROUP_NAME_LENGTH`: a new group's name is at most 50 characters with no control characters, line breaks or lone surrogates. `trimGroupName` trims whitespace and invisible characters (zero-width spaces, soft hyphens...) that `String.prototype.trim` keeps
+- `tabUrl.ts` - `isAllowedTabUrl`: only web addresses (http, https) and browser pages (`about:`, `chrome:`, `file:`...) are opened from a group; `javascript:`, `data:` and anything else is refused. `toSyncableTabUrl` is the stricter check used when saving (the popup's save and the import): it writes the URL as browsers do and percent-encodes characters a strict URL check refuses (`|`, `^`, `{}`...), so the result is plain printable ASCII, or refuses it
 - `tabs.ts` - `replacePinnedTabs()`: opens a group's URLs as pinned tabs, then closes the tabs they replace (new tabs first, URLs refused by the browser or by `isAllowedTabUrl` skipped, old tabs closed one at a time and kept when every URL is refused); shared by the popup and the startup restore
 - `dragModifiers.ts` - `keepWithinList`: dnd-kit modifier that stops a dragged group row leaving the list sideways or past its first and last positions
 - `limits.ts` - `isSameGroupName` / `findMatchingGroupName`: group names are compared ignoring case, accents and trailing spaces, so saving as `work` when `Work` exists updates `Work`
@@ -70,11 +71,12 @@ The repository also holds the code for the hosted service's sign-in and sync (`l
 - `storage/activeGroups.ts` - `getActiveGroupForWindow` / `setActiveGroupForWindow`: the group loaded in each window, one `browser.storage.session` key per window
 - `localData.ts` - `deleteAllLocalData()`: clears all local and session storage
 - `urls.ts` - `WEBSITE_HOME_URL` (opened from the popup logo)
+- `import.ts` - Reading other extensions' exports (see Import): `parseImportFile`, `applyImport` (merge or replace), `describeImportOutcome`
 - `utils.ts` - `cn()` class-name helper (shadcn)
 
 ### UI Components (`components/ui/`)
 
-shadcn/ui primitives (`button.tsx`, `input.tsx`, `dropdown-menu.tsx`) configured via `components.json` (style `new-york`, CSS variables). Add new primitives here rather than hand-rolling them. Global styles live in `assets/tailwind.css`.
+shadcn/ui primitives (`button.tsx`, `checkbox.tsx`, `input.tsx`, `dropdown-menu.tsx`) configured via `components.json` (style `new-york`, CSS variables). Add new primitives here rather than hand-rolling them. Global styles live in `assets/tailwind.css`.
 
 **Tooltips:** never use the `title` attribute in the popup. Some browsers draw a `title` tooltip as its own window, which takes focus from the popup and closes it (seen in Edge on Linux). Wrap the element in `Hint` from `components/ui/tooltip.tsx` instead, which draws the tooltip inside the page.
 
@@ -82,7 +84,7 @@ shadcn/ui primitives (`button.tsx`, `input.tsx`, `dropdown-menu.tsx`) configured
 
 **Compact layout:** Settings > Layout switches between Comfortable (default) and Compact. Compact is styled with the `compact:` variant (e.g. `py-2 compact:py-1`). Add a `compact:` counterpart when adding spacing that should tighten.
 
-The popup is 480px wide (`html, body` width) and at most 600px tall: the header and save bar stay put and the group list scrolls.
+The popup is 480px wide (`html, body` width) and at most 600px tall: the header and save bar stay put and the group list scrolls. Pages opened in a tab (the import page) set `data-page` on `<html>`, which opts them out of the fixed width.
 
 ### Extension Configuration (`wxt.config.ts`)
 
@@ -123,11 +125,20 @@ On browser launch, `background.ts` reads `startupGroup` and restores that group'
 
 ### Saving and Errors
 
-A save checks the name (`validateGroupName`, new names only) and leaves out pinned tabs whose URL `isAllowedTabUrl` refuses, saying how many were left out. Saving, updating, deleting and reordering write to `browser.storage.local` first and update React state after. If the browser refuses a write (for example its storage is full), the reason is shown in the save bar's warning line.
+A save checks the name (`validateGroupName`, new names only) and saves each pinned tab's URL through `toSyncableTabUrl`, leaving out the ones it refuses and saying how many were left out. Saving, updating, deleting and reordering write to `browser.storage.local` first and update React state after. If the browser refuses a write (for example its storage is full), the reason is shown in the save bar's warning line.
+
+### Import
+
+Settings > Import opens `/import.html` in a tab: a page rather than part of the popup, because Firefox closes the popup when a file picker opens. Supported: **Save Pinned Tabs** exports (`{ "version": 2, "sets": [{ "name", "tabs": [url, ...] }] }`, written from its options page). To add a format, add a reader to `IMPORT_FORMATS` in `lib/import.ts`.
+
+- **Reading the file:** only strings are read, and each group is held to the same rules as a save, more strictly: names go through `trimGroupName` and `validateGroupName`, URLs through `toSyncableTabUrl` (the rest reported as left out). A group that cannot be imported is listed with the reason. Groups whose names match (`isSameGroupName`) are combined without repeating a tab.
+- **Preview:** every importable group starts ticked, and each row says what importing it does. When this browser already has groups, the page asks **Add to my groups** (the default: a same-named group gets the tabs it is missing, other groups are added after) or **Replace my groups** (only the imported groups are kept).
+- **Saving** goes through `useGroups().importGroups`, which re-reads local storage (the popup may have changed it since the page loaded) before writing the result.
+- **Tests:** `lib/import.test.ts`.
 
 ### Settings Screen
 
-The settings button in the popup header opens an inline settings view with the theme and layout toggles and a "Delete all local data" action, which asks for confirmation and then clears every saved group and setting. Open tabs are not closed.
+The settings button in the popup header opens an inline settings view with the theme and layout toggles, an Import button (see Import) and a "Delete all local data" action, which asks for confirmation and then clears every saved group and setting. Open tabs are not closed.
 
 ## Browser API Usage
 
@@ -141,6 +152,7 @@ Uses the WebExtension API via the `browser` global (WXT polyfills this for cross
 - `browser.windows.getAll/getCurrent()` / `browser.windows.onRemoved` - Multi-window support
 - `browser.runtime.onStartup` - Fires once per browser launch (not on service worker restarts)
 - `browser.runtime.onInstalled` - Runs the storage migration after an extension update
+- `browser.runtime.getURL()` / `browser.tabs.getCurrent()` - Open the import page from Settings, and close its own tab
 
 ## Path Aliases
 
