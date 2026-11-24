@@ -15,6 +15,7 @@ data stays in your browser - no syncing, no favicons, and no sign-up needed.
 - **Two-Way Updates:** Save your current tab changes back to the group, or discard them to reset your window.
 - **Drag-and-Drop Organization:** Easily reorder your groups however you like.
 - **Auto-Restore on Startup:** Automatically load the last group you were using when you open your browser.
+- **Import:** Bring in the tab groups you saved with Save Pinned Tabs, merged with your groups or replacing them.
 - **Flexible UI:** Choose between light, dark, or system themes, and toggle a compact layout to save space.
 
 ## Requirements

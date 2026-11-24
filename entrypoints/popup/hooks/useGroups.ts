@@ -26,6 +26,7 @@ import {
   wasSyncPausedOverLimit,
 } from "@/lib/sync";
 import { findLimitViolation, getSyncLimitErrorMessage } from "@/lib/limits";
+import { applyImport, type ImportedGroup, type ImportMode } from "@/lib/import";
 
 function isValidTabGroups(value: unknown): value is TabGroups {
   if (!value || typeof value !== "object") return false;
@@ -39,6 +40,17 @@ function isValidTabGroups(value: unknown): value is TabGroups {
 
 function isValidGroupOrder(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+/** The groups and order in local storage, which can be newer than this context's React state. */
+async function readStoredGroups(): Promise<{ groups: TabGroups; groupOrder: string[] }> {
+  const storedResult = await browser.storage.local.get([STORAGE_KEYS.TAB_GROUPS, STORAGE_KEYS.GROUP_ORDER]);
+  const storedGroups = storedResult[STORAGE_KEYS.TAB_GROUPS];
+  const storedOrder = storedResult[STORAGE_KEYS.GROUP_ORDER];
+  const groups: TabGroups = isValidTabGroups(storedGroups) ? storedGroups : {};
+  const groupOrder: string[] = isValidGroupOrder(storedOrder) ? storedOrder.filter((name) => Object.hasOwn(groups, name)) : Object.keys(groups);
+
+  return { groups, groupOrder };
 }
 
 interface UseGroupsReturn {
@@ -59,6 +71,8 @@ interface UseGroupsReturn {
   saveGroup: (name: string, urls: string[]) => Promise<void>;
   deleteGroup: (name: string) => Promise<void>;
   reorderGroups: (fromIndex: number, toIndex: number) => Promise<void>;
+  /** Imports another extension's groups. Returns why nothing was saved, or null once saved. */
+  importGroups: (importedGroups: ImportedGroup[], mode: ImportMode) => Promise<string | null>;
   loadGroupsFromApi: () => Promise<void>;
   /** Resets all local UI state after a successful deleteAllLocalData(). Does NOT write to storage. */
   resetLocalState: () => void;
@@ -68,6 +82,10 @@ interface UseGroupsReturn {
    *  the synchronous generation check in guardedStorageWrite closes the race
    *  window before the async wipe begins. */
   invalidateInFlightLoads: () => void;
+  /** Whether the groups have been read from local storage. */
+  hasLoadedLocalState: boolean;
+  /** Signed in: whether the account's groups have loaded and sync is running (false during a conflict or after a failed load). */
+  hasLoadedAccount: boolean;
 }
 
 /**
@@ -89,6 +107,12 @@ export function useGroups(isAuthenticated: boolean, syncLimits: UserLimits | nul
   const wasAuthenticated = useRef(false);
   // Tracks whether we've loaded groups from API - prevents syncing before we know remote state
   const hasLoadedFromApi = useRef(false);
+  // State twin of hasLoadedFromApi, for screens that wait for the account's groups (the import page)
+  const [hasLoadedAccount, setHasLoadedAccount] = useState(false);
+  const setLoadedFromApi = (loaded: boolean) => {
+    hasLoadedFromApi.current = loaded;
+    setHasLoadedAccount(loaded);
+  };
   // Tracks if we're currently loading from API (to prevent duplicate calls)
   const isLoadingFromApi = useRef(false);
   // Prevents the auto-load effect from re-triggering on every groups change after a failure or conflict
@@ -114,7 +138,7 @@ export function useGroups(isAuthenticated: boolean, syncLimits: UserLimits | nul
     if (wasAuthenticated.current && !isAuthenticated && isInitialized.current) {
       console.log("[useGroups] User logged out, keeping local tab groups");
       // Reset API load flags so we load fresh on next login
-      hasLoadedFromApi.current = false;
+      setLoadedFromApi(false);
       isLoadingFromApi.current = false;
       isAutoLoadBlocked.current = false;
       // Clear any pending conflict
@@ -279,7 +303,7 @@ export function useGroups(isAuthenticated: boolean, syncLimits: UserLimits | nul
       const { groups: apiGroups, groupOrder: apiOrder } = tabsToGroups(apiTabs);
 
       // Read authoritative local state from storage (not React state, which may be stale)
-      const storedResult = await browser.storage.local.get([STORAGE_KEYS.TAB_GROUPS, STORAGE_KEYS.GROUP_ORDER]);
+      const { groups: localGroups, groupOrder: localOrder } = await readStoredGroups();
 
       // Stale-load guard after storage read
       if (loadGeneration.current !== generation || (await getAuthToken()) === null) {
@@ -287,13 +311,6 @@ export function useGroups(isAuthenticated: boolean, syncLimits: UserLimits | nul
         isLoadingFromApi.current = false;
         return;
       }
-
-      const storedGroups = storedResult[STORAGE_KEYS.TAB_GROUPS];
-      const storedOrder = storedResult[STORAGE_KEYS.GROUP_ORDER];
-      const localGroups: TabGroups = isValidTabGroups(storedGroups) ? storedGroups : {};
-      const localOrder: string[] = isValidGroupOrder(storedOrder)
-        ? storedOrder.filter((name) => Object.hasOwn(localGroups, name))
-        : Object.keys(localGroups);
 
       const localHasGroups = Object.keys(localGroups).length > 0;
       const apiHasGroups = Object.keys(apiGroups).length > 0;
@@ -341,7 +358,7 @@ export function useGroups(isAuthenticated: boolean, syncLimits: UserLimits | nul
         setGroups(apiGroups);
         setGroupOrder(apiOrder);
         await markAsSynced(apiGroups, apiOrder);
-        hasLoadedFromApi.current = true;
+        setLoadedFromApi(true);
         isLoadingFromApi.current = false;
         isAutoLoadBlocked.current = false;
         enableSync();
@@ -373,7 +390,7 @@ export function useGroups(isAuthenticated: boolean, syncLimits: UserLimits | nul
             return;
           }
 
-          hasLoadedFromApi.current = true;
+          setLoadedFromApi(true);
           isLoadingFromApi.current = false;
           isAutoLoadBlocked.current = false;
           enableSync();
@@ -389,7 +406,7 @@ export function useGroups(isAuthenticated: boolean, syncLimits: UserLimits | nul
 
         await markAsSynced(localGroups, localOrder);
         await clearSyncPausedOverLimit();
-        hasLoadedFromApi.current = true;
+        setLoadedFromApi(true);
         isLoadingFromApi.current = false;
         isAutoLoadBlocked.current = false;
         enableSync();
@@ -401,7 +418,7 @@ export function useGroups(isAuthenticated: boolean, syncLimits: UserLimits | nul
         // Both empty
         console.log("[useGroups] Both API and local are empty");
         await markAsSynced({}, []);
-        hasLoadedFromApi.current = true;
+        setLoadedFromApi(true);
         isLoadingFromApi.current = false;
         isAutoLoadBlocked.current = false;
         enableSync();
@@ -577,7 +594,7 @@ export function useGroups(isAuthenticated: boolean, syncLimits: UserLimits | nul
       setHasSyncConflict(false);
       setSyncLimitError(null);
       isAutoLoadBlocked.current = false;
-      hasLoadedFromApi.current = true;
+      setLoadedFromApi(true);
       isLoadingFromApi.current = false;
       enableSync();
       setSyncStatus("idle");
@@ -670,6 +687,53 @@ export function useGroups(isAuthenticated: boolean, syncLimits: UserLimits | nul
     [groups, groupOrder, activeGroupName],
   );
 
+  /**
+   * Imports groups from another extension's export, merged with or replacing the groups in local storage (read
+   * fresh, as another context may have changed them since this one loaded). Returns why nothing was saved (no
+   * importable groups, or the result would break the sync limits), or null once saved. Throws if the browser refuses the write.
+   */
+  const importGroups = useCallback(
+    async (importedGroups: ImportedGroup[], mode: ImportMode): Promise<string | null> => {
+      // Replacing with nothing would delete every group (and, signed in, the account's)
+      if (!importedGroups.some((group) => group.skipReason === null)) {
+        return "There are no groups to import.";
+      }
+
+      try {
+        const updated = applyImport(await readStoredGroups(), importedGroups, mode);
+        const limitViolation = findLimitViolation(updated.groups, syncLimits);
+        if (limitViolation) {
+          return limitViolation;
+        }
+
+        await browser.storage.local.set({
+          [STORAGE_KEYS.TAB_GROUPS]: updated.groups,
+          [STORAGE_KEYS.GROUP_ORDER]: updated.groupOrder,
+        });
+        setGroups(updated.groups);
+        setGroupOrder(updated.groupOrder);
+
+        // Replacing can remove the group loaded in this window
+        if (activeGroupName !== null && !Object.hasOwn(updated.groups, activeGroupName)) {
+          setActiveGroupNameState(null);
+          const winId = windowIdRef.current;
+          if (winId != null) {
+            await setActiveGroupForWindow(winId, null).catch((error) =>
+              console.warn("[useGroups] Failed to forget the window's active group:", error),
+            );
+          }
+        }
+        setSyncError(null);
+        return null;
+      } catch (error) {
+        setSyncStatus("error");
+        setSyncError(error instanceof Error ? error.message : "Failed to import groups");
+        throw error;
+      }
+    },
+    [syncLimits, activeGroupName],
+  );
+
   const setActiveGroupName = useCallback(async (name: string | null) => {
     setActiveGroupNameState(name);
     const winId = windowIdRef.current;
@@ -723,9 +787,12 @@ export function useGroups(isAuthenticated: boolean, syncLimits: UserLimits | nul
     saveGroup,
     deleteGroup,
     reorderGroups,
+    importGroups,
     loadGroupsFromApi,
     resetLocalState,
     resolveSyncConflict,
     invalidateInFlightLoads,
+    hasLoadedLocalState,
+    hasLoadedAccount,
   };
 }

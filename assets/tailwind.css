@@ -153,9 +153,10 @@
    * popups to their max-content size on layout-affecting DOM mutations (Chromium issue
    * 555294645); an explicit width with hidden horizontal overflow keeps that recomputed size
    * identical so drags in the group list are not cancelled by the resulting resize events.
+   * Full extension pages opened in a tab (the import page) set data-page on <html> and keep the normal width.
    */
-  html,
-  body {
+  html:not([data-page]),
+  html:not([data-page]) body {
     width: 480px;
     overflow-x: hidden;
   }
